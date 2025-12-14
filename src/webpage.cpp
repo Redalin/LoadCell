@@ -25,7 +25,7 @@ void initwebservers(){
 
   // provide a simple HTTP endpoint to tare the scale
   server.on("/tare", HTTP_POST, [](AsyncWebServerRequest *request){
-    scaleTare();
+    scaleTareAll();
     request->send(200, "application/json", "{\"status\":\"ok\"}");
   });
 
@@ -37,14 +37,12 @@ void initwebservers(){
 
 // Send current weight to all connected websocket clients as JSON
 static void notifyClients(){
-  float weight = scaleGetUnits();
-  StaticJsonDocument<128> doc;
-  if (!isnan(weight)) {
-    doc["weight"] = weight;
-  } else {
-    doc["weight"] = nullptr;
-  }
-  char buf[128];
+  float weight1 = scaleGetUnits1();
+  float weight2 = scaleGetUnits2();
+  StaticJsonDocument<192> doc;
+  if (!isnan(weight1)) doc["weight1"] = weight1; else doc["weight1"] = nullptr;
+  if (!isnan(weight2)) doc["weight2"] = weight2; else doc["weight2"] = nullptr;
+  char buf[192];
   size_t n = serializeJson(doc, buf);
   ws.textAll(buf, n);
 }
@@ -66,7 +64,7 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
     String msg = String((char*)data).substring(0, len);
     Serial.println("WS Received: " + msg);
     if (msg == "tare") {
-      scaleTare();
+      scaleTareAll();
       // send immediate update after tare
       notifyClients();
     }

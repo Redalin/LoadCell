@@ -17,3 +17,19 @@
     #define debugln(message)
 #endif
 
+// The device hostname
+#define HOSTNAME "LaunchScale"
+#define APNAME "scale.local"
+#define APPASS "wellington"
+
+// Load cell 1 pins and calibration
+#define LOADCELL_DOUT_PIN 14
+#define LOADCELL_SCK_PIN 13
+#define CALIBRATION_FACTOR 2051.7
+
+// Load cell 2 pins and calibration
+#define LOADCELL2_DOUT_PIN 27
+#define LOADCELL2_SCK_PIN 26
+#define LOADCELL2_CALIBRATION_FACTOR 2040.5
+
+

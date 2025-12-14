@@ -34,9 +34,9 @@ void loop()
     lastPrint = millis();
     float w = scaleGetUnits();
     if (!isnan(w)) {
-      Serial.print("Weight: ");
-      Serial.print(w);
-      Serial.println(" g");
+      // Serial.print("Weight: ");
+      // Serial.print(w);
+      // Serial.println(" g");
     } else {
       Serial.println("HX711 not ready");
     }

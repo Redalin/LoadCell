@@ -2,10 +2,6 @@
 #include "connect-wifi.h"
 #include "config.h"
 
-// The device hostname
-const char* hostname = "LaunchScale";
-const char* apName = "scale.local";
-const char* apPass = "wellington";
 
 // Wifi network credentials
 const char* KNOWN_SSID[] = {"DRW", "ChrisnAimee.com"};
@@ -16,7 +12,7 @@ int visibleNetworks = 0;
 
 void initMDNS() {
     // Initialize mDNS
-    if (!MDNS.begin(hostname))
+    if (!MDNS.begin(HOSTNAME))
     { // Set the hostname
         Serial.println("Error setting up MDNS responder!");
         while (1)
@@ -30,7 +26,7 @@ void initMDNS() {
 
 void initWifi()
 {
-  WiFi.setHostname(hostname);
+  WiFi.setHostname(HOSTNAME);
   // Scan for known wifi Networks
   int networks = scanForWifi();
   String wifiMessage;
@@ -112,9 +108,9 @@ String connectToWifi() {
 }
 
 String createWifi() {
-  WiFi.softAP(apName, apPass);
+  WiFi.softAP(APNAME, APPASS);
   IPAddress IP = WiFi.softAPIP();
-  String apMessage = "Created Wifi " + String(apName) + " with IP: " + IP.toString();
+  String apMessage = "Created Wifi " + String(APNAME) + " with IP: " + IP.toString();
   Serial.println(apMessage);
   // displayText(apMessage);
   return "DRW.local";

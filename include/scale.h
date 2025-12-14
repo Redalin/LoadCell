@@ -12,5 +12,11 @@ void scaleRead();
 // Return the most recent weight in units (grams by default)
 float scaleGetUnits();
 
+// Additional APIs for second load cell
+float scaleGetUnits1();
+float scaleGetUnits2();
+// Tare both scales
+void scaleTareAll();
+
 
 #endif  // LITTLEFS-CONF_H
