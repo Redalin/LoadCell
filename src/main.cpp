@@ -41,5 +41,5 @@ void loop()
       Serial.println("HX711 not ready");
     }
   }
-  delay(50);
+  delay(200);
 }

@@ -2,6 +2,10 @@
 
 
 HX711 scale;
+// Mutex to protect concurrent access to the HX711 from different tasks/callbacks
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
+static SemaphoreHandle_t scaleMutex = NULL;
 
 void initScale() {
     // Initialization code for the scale
@@ -13,16 +17,31 @@ void initScale() {
     //Set the CALIBRATION FACTOR
     #define CALIBRATION_FACTOR 2051.7
 
+    // create mutex if not already created
+    if (scaleMutex == NULL) {
+        scaleMutex = xSemaphoreCreateMutex();
+    }
+
+    if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
     scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
 
     scale.set_scale(CALIBRATION_FACTOR);
+    // wait briefly for HX711 to become ready before taring
+    if (scale.wait_ready_timeout(500)) {
+        scale.tare();  // Reset the scale to 0 on initialization
+    } else {
+        Serial.println("HX711 not found during init (will retry later)");
+    }
+    if (scaleMutex) xSemaphoreGive(scaleMutex);
+    Serial.println("Scale initialized.");
 }
 
 void scaleCalibrate() {
     // Code to read from the scale can be added here
         // if (scale.wait_ready_timeout(1000)) {
-    if (scale.is_ready()) {
-        scale.set_scale();    
+    if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
+    if (scale.wait_ready_timeout(1000)) {
+        scale.set_scale();
         Serial.println("Tare... remove any weights from the scale.");
         delay(5000);
         scale.tare();
@@ -35,38 +54,51 @@ void scaleCalibrate() {
     } else {
         Serial.println("HX711 not found.");
     }
+    if (scaleMutex) xSemaphoreGive(scaleMutex);
     delay(1000);
 }
 
 void scaleTare() {
     // Code to tare the scale can be added here
-    if (scale.is_ready()) {
+    if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
+    if (scale.wait_ready_timeout(500)) {
         Serial.println("Tare... remove any weights from the scale.");
         // remove the delay to speed up tare
-        // delay(5000); 
+        // delay(5000);
         scale.tare();
         Serial.println("Tare done...");
     } else {
         Serial.println("HX711 not found.");
     }
+    if (scaleMutex) xSemaphoreGive(scaleMutex);
 }   
 
 void scaleRead() {
 
-    if (scale.is_ready()) {
-        
+    if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
+    if (scale.wait_ready_timeout(200)) {
         float reading = scale.get_units();
-        Serial.print(reading);
-        Serial.println("g");
+        // Serial.print(reading);
+        // Serial.println("g");
     } else {
         Serial.println("HX711 not found.");
     }
+    if (scaleMutex) xSemaphoreGive(scaleMutex);
 }
 
 float scaleGetUnits() {
-    if (scale.is_ready()) {
+    float result = NAN;
+    if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
+    if (scale.wait_ready_timeout(200)) {
         // average a few readings for stability
-        return scale.get_units(5);
+        float reading = scale.get_units(5);
+        // Serial.print("Scale reading: ");
+        // Serial.print(reading);
+        // Serial.println("g");
+        result = reading;
+    } else {
+        Serial.println("HX711 not ready");
     }
-    return NAN;
+    if (scaleMutex) xSemaphoreGive(scaleMutex);
+    return result;
 }
