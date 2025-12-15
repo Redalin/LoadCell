@@ -17,6 +17,30 @@
   const ctx1 = canvas1.getContext('2d');
   const ctx2 = canvas2.getContext('2d');
 
+  // Spec table elements and input (use robust selector to get the inner input)
+  const specInputEl = document.querySelector('#specInput input') || document.getElementById('specInput');
+  const loadSpecBtn = document.getElementById('loadSpecBtn');
+  const specAvg1El = document.getElementById('specAvg1');
+  const specAvg2El = document.getElementById('specAvg2');
+
+  let MIN_SPEC = (specInputEl && parseFloat(specInputEl.value)) || (specInputEl && parseFloat(specInputEl.placeholder)) || 550;
+  if (loadSpecBtn && specInputEl) loadSpecBtn.addEventListener('click', () => {
+    const v = parseFloat(specInputEl.value);
+    if (!isNaN(v)) { MIN_SPEC = v; setStatus('Spec set: ' + MIN_SPEC + ' g'); }
+    else setStatus('Invalid spec');
+    updateSpecTable();
+  });
+
+  // Pressing Enter in the spec input should trigger the Set Spec button
+  if (specInputEl && loadSpecBtn) {
+    specInputEl.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        loadSpecBtn.click();
+      }
+    });
+  }
+
   const data1 = [];
   const data2 = [];
   const color1El = document.getElementById('color1');
@@ -260,6 +284,48 @@
     const c2 = (color2El && color2El.value) ? color2El.value : '#cc5500';
     drawGraph(canvas1, ctx1, data1, c1); 
     drawGraph(canvas2, ctx2, data2, c2); 
+    updateSpecTable();
+  }
+
+  // compute min/max for the last 5 seconds and update SpecTable; color cells red if below MIN_SPEC, green if over
+  function updateSpecTable() {
+    const lastMs = 5000;
+    const now = Date.now();
+    const cutoff = now - lastMs;
+    function compute(data) {
+      const visible = data.filter(d => d.t >= cutoff && !isNaN(d.v));
+      if (!visible.length) return null;
+      let min = visible[0].v, max = visible[0].v, sum = 0;
+      for (const p of visible) { if (p.v < min) min = p.v; if (p.v > max) max = p.v; sum += p.v; }
+      const avg = sum / visible.length;
+      return { min, max, avg };
+    }
+    const r1 = compute(data1);
+    const r2 = compute(data2);
+    function apply(avgEl, r) {
+      if (!avgEl) return;
+      if (!r) {
+        avgEl.textContent = '-- g';
+        avgEl.style.background = '';
+        avgEl.title = '';
+        return;
+      }
+      avgEl.textContent = r.avg.toFixed(2) + ' g';
+      avgEl.title = `5s avg: ${r.avg.toFixed(2)} g — min: ${r.min.toFixed(2)} g, max: ${r.max.toFixed(2)} g`;
+      const avg = r.avg;
+      if (avg >= MIN_SPEC) {
+        avgEl.style.background = '#c8e6c9';
+      } else {
+        const deficit = MIN_SPEC - avg;
+        if (deficit <= 10) {
+          avgEl.style.background = '#ffe0b2';
+        } else {
+          avgEl.style.background = '#ffcdd2';
+        }
+      }
+    }
+    apply(specAvg1El, r1);
+    apply(specAvg2El, r2);
   }
 
   setInterval(drawAll, 1000);

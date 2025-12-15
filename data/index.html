@@ -12,7 +12,30 @@
 <body>
     <main >
         <h1>Scale Monitor</h1>
-        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;">
+        
+            <div id="specInput">
+                <label for="SpecTable"><strong>Min Weight:</strong></label>
+                <input type="text" id="specInput" placeholder="550" style="width:25px;margin:8px;" />
+                grams
+                <br>
+                <button id="loadSpecBtn" class="btn3d" >Set Spec</button>
+            </div>
+            <div>
+                <table id="SpecTable" class="SpecTable">
+                    <tr>
+                        <th>5 Sec Avg</th>
+                        <th>Scale 1</th>
+                        <th>Scale 2</th>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td id="specAvg1">-- g</td>
+                        <td id="specAvg2">-- g</td>
+                    </tr>
+                </table>
+
+            </div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;">
             <div id="scaleBox1" class="scaleBox" style="flex:1;min-width:260px;">
                 <div class="scaleHeader">
                     <div style="display:flex;align-items:center;gap:8px;">
