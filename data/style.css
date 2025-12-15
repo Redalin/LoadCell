@@ -6,3 +6,60 @@ body {
     flex-direction: column;
     align-items: center;
 }
+
+main { width: 100%; }
+
+.scaleBox {
+    background: var(--accent, #0077cc);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 12px;
+    color: #fff;
+}
+
+.scaleHeader { display:flex; align-items:center; gap:12px; justify-content:space-between; flex-wrap:wrap; }
+
+.controls { display:flex; gap:8px; align-items:center; }
+
+.colorPicker { width:36px; height:28px; border:1px solid #ddd; padding:2px; border-radius:6px; background:#fff; display:none; }
+.scaleBox.editing .colorPicker { display:inline-block; }
+
+.editIcon {
+    width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center; border-radius:6px; cursor:pointer; background:rgba(255,255,255,0.12);
+}
+.editIcon svg { width:16px; height:16px; fill:currentColor; }
+.scaleNameInput { display:none; border-radius:6px; padding:6px; border:1px solid rgba(255,255,255,0.12); background:transparent; color:inherit; font-size:1.1rem; max-width:160px; box-sizing:border-box; }
+.scaleBox.editing .scaleNameInput { display:inline-block; }
+.scaleBox.editing .scaleTitle { display:none; }
+
+.editControls { display:none; gap:8px; align-items:center; }
+.scaleBox.editing .editControls { display:flex; }
+.editControls .btn3d { background: linear-gradient(rgba(255,255,255,0.95), rgba(230,230,230,0.9)); color: #111; border:1px solid rgba(0,0,0,0.08); }
+
+/* hide edit icon while editing */
+.scaleBox.editing .editIcon { display:none; }
+
+.saveBtn { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:6px; background: #1fa84b; color: #fff; border: none; box-shadow: 0 3px 0 rgba(0,0,0,0.08); cursor: pointer; }
+.cancelBtn { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:6px; background: #e04b4b; color: #fff; border: none; box-shadow: 0 3px 0 rgba(0,0,0,0.08); cursor: pointer; }
+.saveBtn:active, .cancelBtn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,0.06); }
+.saveBtn svg, .cancelBtn svg { width:14px; height:14px; fill:currentColor; }
+
+.editControls { display:none; gap:8px; align-items:center; flex-shrink:0; }
+.scaleHeader .controls { flex-shrink:0; }
+
+.btn3d, .winBtn {
+    background: linear-gradient(#fff,#eee);
+    border: 1px solid #bbb;
+    padding: 8px 12px;
+    border-radius: 6px;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.08), 0 8px 14px rgba(0,0,0,0.06);
+    cursor: pointer;
+    transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.btn3d:active, .winBtn:active {
+    transform: translateY(3px);
+    box-shadow: 0 3px 0 rgba(0,0,0,0.06), 0 6px 10px rgba(0,0,0,0.04);
+}
+
+/* ensure canvas area stays white */
+canvas { background: #fff; border-radius:6px; }

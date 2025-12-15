@@ -3,6 +3,7 @@
 // Mutex to protect concurrent access to the HX711 from different tasks/callbacks
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
+#include "webpage.h"
 static SemaphoreHandle_t scaleMutex = NULL;
 HX711 scale;
 HX711 scale2;
@@ -38,45 +39,60 @@ void initScale() {
     Serial.println("Scale initialized.");
 }
 
-void scaleCalibrate() {
-    // Code to read from the scale can be added here
-        // if (scale.wait_ready_timeout(1000)) {
+// Calibrate specific scale. which=1 or 2. Returns measured reading (NaN on error)
+float scaleCalibrate(int which) {
+    float result = NAN;
     if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
-    if (scale.wait_ready_timeout(1000)) {
-        scale.set_scale();
-        Serial.println("Tare... remove any weights from the scale.");
-        delay(5000);
-        scale.tare();
-        Serial.println("Tare done...");
-        Serial.print("Place a known weight on the scale...");
-        delay(5000);
-        long reading = scale.get_units(10);
-        Serial.print("Result: ");
-        Serial.println(reading);
+    if (which == 1) {
+        if (scale.wait_ready_timeout(1000)) {
+            scale.set_scale(1.0); // remove existing calibration
+            Serial.println("Tare... remove any weights from scale 1.");
+            delay(500);
+            scale.tare();
+            Serial.println("Put a known weight on scale 1.");
+            delay(2000);
+            result = scale.get_units(10);
+            Serial.print("Calibrate result (1): "); Serial.println(result);
+        } else {
+            Serial.println("HX711 (1) not found for calibrate.");
+        }
+    } else if (which == 2) {
+        if (scale2.wait_ready_timeout(1000)) {
+            scale2.set_scale(1.0);
+            Serial.println("Tare... remove any weights from scale 2.");
+            delay(500);
+            scale2.tare();
+            Serial.println("Put a known weight on scale 2.");
+            delay(2000);
+            result = scale2.get_units(10);
+            Serial.print("Calibrate result (2): "); Serial.println(result);
+        } else {
+            Serial.println("HX711 (2) not found for calibrate.");
+        }
     } else {
-        Serial.println("HX711 not found.");
+        // invalid which - do nothing
     }
     if (scaleMutex) xSemaphoreGive(scaleMutex);
-    delay(1000);
+    return result;
 }
 
-void scaleTare() {
-    // Code to tare the scale can be added here
+// Tare one or both scales. which=1 or 2, otherwise both.
+void scaleTare(int which) {
     if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
-    Serial.println("Tare... remove any weights from the scales.");
-    if (scale.wait_ready_timeout(500)) {
-        scale.tare();
+    if (which == 1) {
+        Serial.println("Tare scale 1...");
+        if (scale.wait_ready_timeout(500)) scale.tare(); else Serial.println("HX711 not found (scale 1).");
+    } else if (which == 2) {
+        Serial.println("Tare scale 2...");
+        if (scale2.wait_ready_timeout(500)) scale2.tare(); else Serial.println("HX711 not found (scale 2).");
     } else {
-        Serial.println("HX711 not found (scale 1).");
-    }
-    if (scale2.wait_ready_timeout(500)) {
-        scale2.tare();
-    } else {
-        Serial.println("HX711 not found (scale 2).");
+        Serial.println("Tare both scales...");
+        if (scale.wait_ready_timeout(500)) scale.tare(); else Serial.println("HX711 not found (scale 1).");
+        if (scale2.wait_ready_timeout(500)) scale2.tare(); else Serial.println("HX711 not found (scale 2).");
     }
     Serial.println("Tare done...");
     if (scaleMutex) xSemaphoreGive(scaleMutex);
-}   
+}
 
 void scaleRead() {
 
@@ -130,10 +146,28 @@ float scaleGetUnits2() {
     return result;
 }
 
-// Tare both scales
-void scaleTareAll() {
-    if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
-    if (scale.wait_ready_timeout(200)) scale.tare();
-    if (scale2.wait_ready_timeout(200)) scale2.tare();
-    if (scaleMutex) xSemaphoreGive(scaleMutex);
+// Compatibility: tare both scales
+void scaleTareAll() { scaleTare(0); }
+
+// Async calibrate task wrapper
+struct CalArgs { int which; uint32_t clientId; };
+
+static void calibrateTask(void *pvParameters) {
+    CalArgs *args = (CalArgs*)pvParameters;
+    int which = args->which;
+    uint32_t clientId = args->clientId;
+    // call synchronous calibrate (it will use delays) from this task
+    float result = scaleCalibrate(which);
+    // report back
+    sendCalibrationResult(which, result, clientId);
+    free(args);
+    vTaskDelete(NULL);
+}
+
+// start async calibration (non-blocking)
+void scaleCalibrateAsync(int which, uint32_t clientId) {
+    CalArgs *args = (CalArgs*)malloc(sizeof(CalArgs));
+    if (!args) return;
+    args->which = which; args->clientId = clientId;
+    xTaskCreatePinnedToCore(calibrateTask, "calib", 4096, args, tskIDLE_PRIORITY+1, NULL, 0);
 }

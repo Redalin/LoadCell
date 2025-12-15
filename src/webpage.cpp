@@ -1,6 +1,7 @@
 #include "webpage.h"
 #include "littlefs-conf.h"
 #include "scale.h"
+#include "settings.h"
 #include <ArduinoJson.h>
 
 
@@ -23,9 +24,44 @@ void initwebservers(){
     request->send(LittleFS, "/favicon.png", "image/png");
   });
 
+  // settings endpoints
+  server.on("/settings", HTTP_GET, [](AsyncWebServerRequest *request){
+    String s = settingsAsJson();
+    request->send(200, "application/json", s);
+  });
+  server.on("/settings/reset", HTTP_POST, [](AsyncWebServerRequest *request){
+    settingsResetDefaults();
+    String s = settingsAsJson();
+    request->send(200, "application/json", s);
+  });
+  // POST /settings with JSON body
+  server.on("/settings", HTTP_POST, [](AsyncWebServerRequest *request){
+    // ack will be sent from body handler
+  }, nullptr, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
+    // collect body (may be called multiple times)
+    String body;
+    body.reserve(total);
+    body = String((const char*)data, len);
+    StaticJsonDocument<256> doc;
+    DeserializationError err = deserializeJson(doc, body);
+    if (err) { request->send(400, "application/json", "{\"error\":\"invalid json\"}"); return; }
+    if (doc.containsKey("name1")) settingsSetName(1, String((const char*)doc["name1"]));
+    if (doc.containsKey("name2")) settingsSetName(2, String((const char*)doc["name2"]));
+    if (doc.containsKey("color1")) settingsSetColor(1, String((const char*)doc["color1"]));
+    if (doc.containsKey("color2")) settingsSetColor(2, String((const char*)doc["color2"]));
+    bool ok = settingsSave();
+    if (ok) request->send(200, "application/json", "{\"status\":\"ok\"}"); else request->send(500, "application/json", "{\"error\":\"save failed\"}");
+  });
+
   // provide a simple HTTP endpoint to tare the scale
   server.on("/tare", HTTP_POST, [](AsyncWebServerRequest *request){
-    scaleTareAll();
+    int which = 0;
+    if (request->hasArg("scale")) {
+      which = request->arg("scale").toInt();
+    }
+    if (which == 1) scaleTare(1);
+    else if (which == 2) scaleTare(2);
+    else scaleTareAll();
     request->send(200, "application/json", "{\"status\":\"ok\"}");
   });
 
@@ -63,10 +99,36 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
     // incoming message (assume simple text commands)
     String msg = String((char*)data).substring(0, len);
     Serial.println("WS Received: " + msg);
+    // commands: tare, tare:1, tare:2, calibrate:1, calibrate:2
     if (msg == "tare") {
       scaleTareAll();
-      // send immediate update after tare
       notifyClients();
+    } else if (msg.startsWith("tare:")) {
+      int which = msg.substring(msg.indexOf(':') + 1).toInt();
+      scaleTare(which);
+      notifyClients();
+    } else if (msg.startsWith("calibrate:")) {
+      int which = msg.substring(msg.indexOf(':') + 1).toInt();
+      // start async calibration; pass client id so result can be returned
+      uint32_t cid = client ? client->id() : 0;
+      scaleCalibrateAsync(which, cid);
+      // immediate ack to requester
+      if (client) client->text("{\"status\":\"calibrating\"}");
     }
   }
+}
+
+// send calibration result to clients (declared in header)
+void sendCalibrationResult(int which, float value, uint32_t clientId) {
+  StaticJsonDocument<128> doc;
+  if (!isnan(value)) doc["calibrate"] = value; else doc["calibrate"] = nullptr;
+  doc["scale"] = which;
+  char buf[128]; size_t n = serializeJson(doc, buf);
+  // if clientId provided, send to that client only when available
+  if (clientId != 0) {
+    // try to find client and send; fall back to broadcast
+    AsyncWebSocketClient *c = ws.client(clientId);
+    if (c) { c->text(buf, n); return; }
+  }
+  ws.textAll(buf, n);
 }

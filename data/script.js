@@ -2,7 +2,14 @@
   const weightEl1 = document.getElementById('weight1');
   const weightEl2 = document.getElementById('weight2');
   const statusEl = document.getElementById('status');
-  const tareBtn = document.getElementById('tareBtn');
+  const tare1Btn = document.getElementById('tare1Btn');
+  const tare2Btn = document.getElementById('tare2Btn');
+  const calibrateBtn = document.getElementById('calibrateBtn');
+  const calScale = document.getElementById('calScale');
+  const calResult = document.getElementById('calResult');
+  const calReading1 = document.getElementById('calReading1');
+  const calReading2 = document.getElementById('calReading2');
+  const tareAllBtn = document.getElementById('tareAllBtn');
   const clearBtn = document.getElementById('clearBtn');
   const canvas1 = document.getElementById('weightGraph1');
   const canvas2 = document.getElementById('weightGraph2');
@@ -12,6 +19,10 @@
 
   const data1 = [];
   const data2 = [];
+  const color1El = document.getElementById('color1');
+  const color2El = document.getElementById('color2');
+  const box1 = document.getElementById('scaleBox1');
+  const box2 = document.getElementById('scaleBox2');
   let WINDOW_MS = 5 * 60 * 1000;
   const selectorWrap = document.getElementById('windowSelectors');
 
@@ -28,10 +39,27 @@
     const url = protocol + loc.host + '/ws';
     ws = new WebSocket(url);
     ws.onopen = () => setStatus('WS connected');
+    // fetch persisted settings once websocket opens
+    fetch('/settings').then(r => r.json()).then(j => {
+      if (j.name1) { title1.textContent = j.name1; name1.value = j.name1; }
+      if (j.name2) { title2.textContent = j.name2; name2.value = j.name2; }
+      if (j.color1) { color1El.value = j.color1; color1El.setAttribute('value', j.color1); }
+      if (j.color2) { color2El.value = j.color2; color2El.setAttribute('value', j.color2); }
+      applyColors();
+    }).catch(()=>{});
     ws.onclose = () => { setStatus('WS disconnected — retrying'); setTimeout(connect, 1500); };
     ws.onmessage = (ev) => {
       try {
         const obj = JSON.parse(ev.data);
+        // handle calibration response
+        if (obj.calibrate !== undefined) {
+          const which = obj.scale || 0;
+          const r = obj.calibrate;
+          const text = (isNaN(r) ? 'calibrate failed' : (Number(r).toFixed(3) + ' g'));
+          calResult.textContent = `Scale ${which}: ${text}`;
+          if (which === 1) calReading1.textContent = text;
+          if (which === 2) calReading2.textContent = text;
+        }
         const now = Date.now();
         const w1 = obj.weight1;
         const w2 = obj.weight2;
@@ -59,12 +87,131 @@
   }
   connect();
 
-  tareBtn.addEventListener('click', () => {
+  tareAllBtn.addEventListener('click', () => {
     if (ws && ws.readyState === WebSocket.OPEN) { ws.send('tare'); setStatus('Tare sent'); return; }
     fetch('/tare', { method: 'POST' }).then(r => r.json()).then(j => setStatus('Tare OK')).catch(() => setStatus('Tare failed'));
   });
 
+  // per-scale tare buttons
+  if (tare1Btn) tare1Btn.addEventListener('click', () => {
+    if (ws && ws.readyState === WebSocket.OPEN) { ws.send('tare:1'); setStatus('Tare 1 sent'); return; }
+    fetch('/tare?scale=1', { method: 'POST' }).then(r => r.json()).then(j => setStatus('Tare OK')).catch(() => setStatus('Tare failed'));
+  });
+  if (tare2Btn) tare2Btn.addEventListener('click', () => {
+    if (ws && ws.readyState === WebSocket.OPEN) { ws.send('tare:2'); setStatus('Tare 2 sent'); return; }
+    fetch('/tare?scale=2', { method: 'POST' }).then(r => r.json()).then(j => setStatus('Tare OK')).catch(() => setStatus('Tare failed'));
+  });
+
+  // calibration
+  if (calibrateBtn) calibrateBtn.addEventListener('click', () => {
+    const which = Number(calScale.value) || 1;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send('calibrate:' + which);
+      setStatus('Calibrate sent');
+      return;
+    }
+    setStatus('WS not connected');
+  });
+
+  // color handling
+  function applyColors() {
+    const c1 = (color1El && color1El.value) ? color1El.value : '#0077cc';
+    const c2 = (color2El && color2El.value) ? color2El.value : '#cc5500';
+    if (box1) box1.style.setProperty('--accent', c1);
+    if (box2) box2.style.setProperty('--accent', c2);
+    drawAll();
+  }
+  if (color1El) color1El.addEventListener('input', applyColors);
+  if (color2El) color2El.addEventListener('input', applyColors);
+  applyColors();
+
+  // edit UI
+  const edit1 = document.getElementById('edit1');
+  const edit2 = document.getElementById('edit2');
+  const name1 = document.getElementById('scaleName1');
+  const name2 = document.getElementById('scaleName2');
+  const title1 = document.querySelector('#scaleBox1 .scaleTitle');
+  const title2 = document.querySelector('#scaleBox2 .scaleTitle');
+
+  function beginEdit(box, which) {
+    box.classList.add('editing');
+    // focus name input
+    if (box.id === 'scaleBox1') name1.focus(); else name2.focus();
+  }
+  function endEdit(box, save) {
+    if (!save) {
+      // revert name and color to previous values
+      if (box.id === 'scaleBox1') {
+        name1.value = title1.textContent;
+        color1El.value = color1El.getAttribute('value') || '#0077cc';
+      } else {
+        name2.value = title2.textContent;
+        color2El.value = color2El.getAttribute('value') || '#cc5500';
+      }
+      applyColors();
+    } else {
+      // save title
+      if (box.id === 'scaleBox1') {
+        title1.textContent = name1.value;
+        color1El.setAttribute('value', color1El.value);
+      } else {
+        title2.textContent = name2.value;
+        color2El.setAttribute('value', color2El.value);
+      }
+    }
+    box.classList.remove('editing');
+    // if saved, persist settings to server
+    if (save) {
+      const payload = {
+        name1: document.getElementById('scaleName1').value,
+        name2: document.getElementById('scaleName2').value,
+        color1: document.getElementById('color1').value,
+        color2: document.getElementById('color2').value
+      };
+      fetch('/settings', { method: 'POST', body: JSON.stringify(payload), headers: {'Content-Type':'application/json'} })
+        .then(r => r.json()).then(j => { if (j.status === 'ok') setStatus('Settings saved'); else setStatus('Save failed'); })
+        .catch(() => setStatus('Save failed'));
+    }
+  }
+
+  if (edit1) edit1.addEventListener('click', () => beginEdit(box1, 1));
+  if (edit2) edit2.addEventListener('click', () => beginEdit(box2, 2));
+
+  // add save/cancel buttons dynamically inside each box header when editing
+  function createEditControls(box) {
+    let ctr = box.querySelector('.editControls');
+    if (ctr) return ctr;
+    ctr = document.createElement('div'); ctr.className = 'editControls';
+    const save = document.createElement('button'); save.className = 'saveBtn';
+    save.setAttribute('title','Save');
+    save.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.2l-3.5-3.5L4 14.2 9 19l12-12-1.5-1.5z"/></svg>';
+    const cancel = document.createElement('button'); cancel.className = 'cancelBtn';
+    cancel.setAttribute('title','Cancel');
+    cancel.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 6.4L17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z"/></svg>';
+    ctr.appendChild(save); ctr.appendChild(cancel);
+    const header = box.querySelector('.scaleHeader'); header.appendChild(ctr);
+    save.addEventListener('click', () => endEdit(box, true));
+    cancel.addEventListener('click', () => endEdit(box, false));
+    return ctr;
+  }
+  createEditControls(box1); createEditControls(box2);
+
   clearBtn.addEventListener('click', () => { data1.length = 0; data2.length = 0; drawAll(); setStatus('Data cleared'); });
+
+  const resetBtn = document.getElementById('resetBtn');
+  if (resetBtn) resetBtn.addEventListener('click', () => {
+    if (!confirm('Reset scale names and colors to defaults?')) return;
+    fetch('/settings/reset', { method: 'POST' })
+      .then(r => r.json())
+      .then(j => {
+        if (j.name1) { title1.textContent = j.name1; name1.value = j.name1; }
+        if (j.name2) { title2.textContent = j.name2; name2.value = j.name2; }
+        if (j.color1) { color1El.value = j.color1; color1El.setAttribute('value', j.color1); }
+        if (j.color2) { color2El.value = j.color2; color2El.setAttribute('value', j.color2); }
+        applyColors();
+        setStatus('Defaults restored');
+      }).catch(()=> setStatus('Reset failed'));
+  });
 
   if (selectorWrap) {
     selectorWrap.addEventListener('click', (ev) => {
@@ -108,7 +255,12 @@
     ctx.fillText(min.toFixed(2) + ' g', pad + 4, canvas.clientHeight - pad - 2);
   }
 
-  function drawAll() { drawGraph(canvas1, ctx1, data1, '#0077cc'); drawGraph(canvas2, ctx2, data2, '#cc5500'); }
+  function drawAll() { 
+    const c1 = (color1El && color1El.value) ? color1El.value : '#0077cc';
+    const c2 = (color2El && color2El.value) ? color2El.value : '#cc5500';
+    drawGraph(canvas1, ctx1, data1, c1); 
+    drawGraph(canvas2, ctx2, data2, c2); 
+  }
 
   setInterval(drawAll, 1000);
 

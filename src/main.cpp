@@ -4,6 +4,7 @@
 #include "littlefs-conf.h"
 #include "scale.h"
 #include "webpage.h"
+#include "settings.h"
 
 void setup()
 {
@@ -18,6 +19,9 @@ void setup()
 
   // initialise the scale
   initScale();
+
+  // load persisted settings
+  settingsInit();
 
   // initialise the websocket and web server
   initwebservers();
