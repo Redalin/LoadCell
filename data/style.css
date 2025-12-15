@@ -7,7 +7,13 @@ body {
     align-items: center;
 }
 
-main { width: 100%; }
+main { 
+    width: 100%; 
+    box-sizing: border-box; 
+    max-width: 98%;
+    margin:32px auto; 
+    padding:16px;
+}
 
 .scaleBox {
     background: var(--accent, #0077cc);
@@ -56,9 +62,33 @@ main { width: 100%; }
     cursor: pointer;
     transition: transform 120ms ease, box-shadow 120ms ease;
 }
-.btn3d:active, .winBtn:active {
+.btn3d:active {
     transform: translateY(3px);
     box-shadow: 0 3px 0 rgba(0,0,0,0.06), 0 6px 10px rgba(0,0,0,0.04);
+}
+
+/* selected time-window button: remove shadow and darken */
+.winBtn.active {
+    box-shadow: none;
+    transform: translateX(2px) translateY(2px);
+    background: linear-gradient(#d0d0d0, #b8b8b8);
+    border-color: #999;
+    color: #111;
+}
+
+.dropdown {
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background: #fff;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.calresult, .status{
+    margin-left: 8px;
+    color: #333;
+    /* font-weight: bold; */
 }
 
 /* ensure canvas area stays white */

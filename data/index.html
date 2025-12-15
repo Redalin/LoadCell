@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -7,21 +8,25 @@
     <link rel="stylesheet" href="style.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
 </head>
+
 <body>
-    <main style="max-width:720px;margin:32px auto;padding:16px;">
+    <main >
         <h1>Scale Monitor</h1>
         <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;">
             <div id="scaleBox1" class="scaleBox" style="flex:1;min-width:260px;">
-                                <div class="scaleHeader">
-                                    <div style="display:flex;align-items:center;gap:8px;">
-                                        <h2 class="scaleTitle">Scale 1</h2>
-                                        <input class="scaleNameInput" id="scaleName1" value="Scale 1" />
-                                    </div>
-                                    <div style="display:flex;align-items:center;gap:8px;">
-                                        <input id="color1" class="colorPicker" type="color" value="#0077cc" title="Scale 1 color" />
-                                        <div id="edit1" class="editIcon" title="Edit"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"/></svg></div>
-                                    </div>
-                                </div>
+                <div class="scaleHeader">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <h2 class="scaleTitle">Scale 1</h2>
+                        <input class="scaleNameInput" id="scaleName1" value="Scale 1" />
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <input id="color1" class="colorPicker" type="color" value="#0077cc" title="Scale 1 color" />
+                        <div id="edit1" class="editIcon" title="Edit"><svg viewBox="0 0 24 24">
+                                <path
+                                    d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z" />
+                            </svg></div>
+                    </div>
+                </div>
                 <div style="display:flex;align-items:center;gap:12px;">
                     <div style="font-size:1.6rem;font-weight:600;">Weight:</div>
                     <div id="weight1" style="font-size:1.6rem;">-- g</div>
@@ -31,20 +36,24 @@
                     <div id="calReading1" style="color:#666;margin-left:8px;"></div>
                 </div>
                 <div style="margin-top:8px;">
-                    <canvas id="weightGraph1" width="700" height="180" style="width:100%;height:180px;border:1px solid #ddd;background:#fff"></canvas>
+                    <canvas id="weightGraph1" width="700" height="180"
+                        style="width:100%;height:180px;border:1px solid #ddd;background:#fff"></canvas>
                 </div>
             </div>
             <div id="scaleBox2" class="scaleBox" style="flex:1;min-width:260px;">
-                                <div class="scaleHeader">
-                                    <div style="display:flex;align-items:center;gap:8px;">
-                                        <h2 class="scaleTitle">Scale 2</h2>
-                                        <input class="scaleNameInput" id="scaleName2" value="Scale 2" />
-                                    </div>
-                                    <div style="display:flex;align-items:center;gap:8px;">
-                                        <input id="color2" class="colorPicker" type="color" value="#cc5500" title="Scale 2 color" />
-                                        <div id="edit2" class="editIcon" title="Edit"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"/></svg></div>
-                                    </div>
-                                </div>
+                <div class="scaleHeader">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <h2 class="scaleTitle">Scale 2</h2>
+                        <input class="scaleNameInput" id="scaleName2" value="Scale 2" />
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <input id="color2" class="colorPicker" type="color" value="#cc5500" title="Scale 2 color" />
+                        <div id="edit2" class="editIcon" title="Edit"><svg viewBox="0 0 24 24">
+                                <path
+                                    d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z" />
+                            </svg></div>
+                    </div>
+                </div>
                 <div style="display:flex;align-items:center;gap:12px;">
                     <div style="font-size:1.6rem;font-weight:600;">Weight:</div>
                     <div id="weight2" style="font-size:1.6rem;">-- g</div>
@@ -54,32 +63,36 @@
                     <div id="calReading2" style="color:#666;margin-left:8px;"></div>
                 </div>
                 <div style="margin-top:8px;">
-                    <canvas id="weightGraph2" width="700" height="180" style="width:100%;height:180px;border:1px solid #ddd;background:#fff"></canvas>
+                    <canvas id="weightGraph2" width="700" height="180"
+                        style="width:100%;height:180px;border:1px solid #ddd;background:#fff"></canvas>
                 </div>
             </div>
         </div>
-        <div id="graphWrap" style="margin-top:16px;">
+        <div id="graphWrap" style="margin:12px;">
+            <label for="calScale">Select Time Window</label>
             <div id="windowSelectors" style="margin-bottom:8px;display:flex;gap:8px;">
-                <label for="calScale">Select Time Window</label>
                 <button class="winBtn" data-ms="5000">5s</button>
                 <button class="winBtn" data-ms="20000">20s</button>
                 <button class="winBtn active" data-ms="300000">5min</button>
             </div>
         </div>
-        <div style="margin-top:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-            <button id="tareAllBtn" class="btn3d" style="padding:10px 16px;font-size:1rem;">Tare All</button>
-            <button id="clearBtn" class="btn3d" style="padding:10px 12px;font-size:1rem;">Clear data</button>
-                <button id="resetBtn" class="btn3d" style="padding:10px 12px;font-size:1rem;">Reset Defaults</button>
-            <div style="display:flex;align-items:center;gap:8px;margin-left:8px;">
-                <button id="calibrateBtn" class="btn3d" style="padding:8px 10px;">Calibrate</button>
-                <!-- <label for="calScale">Calibrate:</label> -->
-                <select id="calScale"><option value="1">Scale 1</option><option value="2">Scale 2</option></select>
-                
-                <div id="calResult" style="margin-left:8px;color:#333;"></div>
-            </div>
-            <span id="status" style="margin-left:12px;color:#666"></span>
+        <div style="margin:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <button id="tareAllBtn" class="btn3d" >Tare All</button>
+            <button id="clearBtn" class="btn3d" >Clear data</button>
+            <button id="resetBtn" class="btn3d" >Reset Defaults</button>
         </div>
+
+        <div style="display:flex;align-items:center;gap:8px;margin: 12px;">
+            <button id="calibrateBtn" class="btn3d" >Calibrate</button>
+            <select id="calScale" class="dropdown">
+                <option value="1">Scale 1</option>
+                <option value="2">Scale 2</option>
+            </select>
+            <div id="calResult" ></div>
+        </div>
+        <span id="status" ></span>
     </main>
     <script src="script.js"></script>
 </body>
+
 </html>
