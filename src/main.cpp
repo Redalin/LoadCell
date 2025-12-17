@@ -6,6 +6,7 @@
 #include "webpage.h"
 #include "settings.h"
 #include "display-oled.h"
+#include "espnow.h"
 
 String mainMessage = "Starting up...";
 
@@ -19,6 +20,9 @@ void setup()
   // initialise the OLED display
   displaysetup();
 
+  // initialise ESP-NOW
+  espnowInit();
+
   // initialise Wifi as per the connect-wifi file
   initWifi();
   initMDNS();
@@ -29,20 +33,45 @@ void setup()
   // load persisted settings
   settingsInit();
 
-  // initialise the websocket and web server
-  initwebservers();
+  // initialise the websocket and web server (parent only)
+  if (ESPNOW_IS_PARENT) {
+    initwebservers();
+  }
 }
 
 void loop()
 {
-  // broadcast weight to connected web clients
-  webBroadcastLoop();
+  // broadcast weight to connected web clients (parent only)
+  if (ESPNOW_IS_PARENT) {
+    webBroadcastLoop();
+  } else {
+    // Child node: read scale and send via ESP-NOW
+    static unsigned long lastSend = 0;
+    if (millis() - lastSend >= CHILD_NODE_INTERVAL) {
+      lastSend = millis();
+      float w = scaleGetUnits1();  // Read from primary scale
+      if (!isnan(w)) {
+        espnowSendWeight(w);
+      }
+    }
+    
+    // Check for pending tare commands
+    uint8_t tareScale = espnowGetPendingTareCommand();
+    if (tareScale > 0) {
+      scaleTare(tareScale);  // Tare the specified scale
+    }
+  }
 
-  // optional: print weight to Serial every 2 seconds
+  // optional: print weight to Serial and display every 2 seconds
   static unsigned long lastPrint = 0;
   if (millis() - lastPrint >= 2000) {
     lastPrint = millis();
-    float w = scaleGetDummyUnits(); // added Dummy for testing without scale
+    float w;
+    if (ESPNOW_IS_PARENT) {
+      w = scaleGetDummyUnits();  // Parent shows dummy for demo
+    } else {
+      w = scaleGetUnits1();  // Child shows its own scale
+    }
     mainMessage = String(w);
     Serial.println(mainMessage + "g");
     displayWeight(mainMessage);

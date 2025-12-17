@@ -142,6 +142,7 @@ float scaleGetUnits1() {
     }
     if (scaleMutex) xSemaphoreGive(scaleMutex);
     return result;
+    // return scaleGetDummyUnits();  // For testing without scale
 }
 
 // Return units for secondary scale
@@ -153,6 +154,7 @@ float scaleGetUnits2() {
     }
     if (scaleMutex) xSemaphoreGive(scaleMutex);
     return result;
+    // return scaleGetDummyUnits();  // For testing without scale
 }
 
 // Compatibility: tare both scales

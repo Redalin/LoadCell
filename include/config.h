@@ -37,4 +37,16 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 #define LOADCELL2_SCK_PIN 26
 #define LOADCELL2_CALIBRATION_FACTOR 1979.4
 
+// ESP-NOW Configuration
+// Set to 1 for parent node (receives data), 0 for child node (sends data)
+#define ESPNOW_IS_PARENT 1
+
+// Parent node MAC address (set on parent device)
+#define PARENT_MAC_ADDR {0x24, 0x0A, 0xC4, 0x11, 0x11, 0x11}
+
+// Child nodes MAC addresses (for parent to add as peers)
+// Update these with your child device MAC addresses
+#define CHILD_NODE_INTERVAL 1000  // ms between scale readings on child
+#define ESPNOW_CHANNEL 1
+
 
