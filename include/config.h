@@ -22,6 +22,11 @@
 #define APNAME "scale.local"
 #define APPASS "wellington"
 
+// Known WiFi networks and passwords
+constexpr const char* KNOWN_SSID[] = {"DRW", "ChrisnAimee.com"};
+constexpr const char* KNOWN_PASSWORD[] = {"wellington", "carbondell"};
+constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
+
 // Load cell 1 pins and calibration
 #define LOADCELL_DOUT_PIN 14
 #define LOADCELL_SCK_PIN 13

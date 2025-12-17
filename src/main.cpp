@@ -5,6 +5,9 @@
 #include "scale.h"
 #include "webpage.h"
 #include "settings.h"
+#include "display-oled.h"
+
+String mainMessage = "Starting up...";
 
 void setup()
 {
@@ -12,6 +15,9 @@ void setup()
 
   // initialise the LittleFS
   initLittleFS();
+
+  // initialise the OLED display
+  displaysetup();
 
   // initialise Wifi as per the connect-wifi file
   initWifi();
@@ -36,14 +42,10 @@ void loop()
   static unsigned long lastPrint = 0;
   if (millis() - lastPrint >= 2000) {
     lastPrint = millis();
-    float w = scaleGetUnits();
-    if (!isnan(w)) {
-      // Serial.print("Weight: ");
-      // Serial.print(w);
-      // Serial.println(" g");
-    } else {
-      Serial.println("HX711 not ready");
-    }
+    float w = scaleGetDummyUnits(); // added Dummy for testing without scale
+    mainMessage = String(w);
+    Serial.println(mainMessage + "g");
+    displayWeight(mainMessage);
   }
   delay(200);
 }

@@ -4,9 +4,12 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "webpage.h"
+#include "display-oled.h"
+
 static SemaphoreHandle_t scaleMutex = NULL;
 HX711 scale;
 HX711 scale2;
+String scaleMessage = "";
 
 void initScale() {
     // Initialization code for the scale
@@ -99,11 +102,12 @@ void scaleRead() {
     if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
     if (scale.wait_ready_timeout(200)) {
         float reading = scale.get_units();
-        // Serial.print(reading);
-        // Serial.println("g");
+        scaleMessage = "Scale reading: " + String(reading) + " g";
     } else {
-        Serial.println("HX711 not found.");
+        scaleMessage = "HX711 not found.";
     }
+    Serial.println(scaleMessage);
+    displayText(scaleMessage);
     if (scaleMutex) xSemaphoreGive(scaleMutex);
 }
 
@@ -113,15 +117,20 @@ float scaleGetUnits() {
     if (scale.wait_ready_timeout(200)) {
         // average a few readings for stability
         float reading = scale.get_units(5);
-        // Serial.print("Scale reading: ");
-        // Serial.print(reading);
-        // Serial.println("g");
         result = reading;
     } else {
         Serial.println("HX711 not ready");
     }
     if (scaleMutex) xSemaphoreGive(scaleMutex);
     return result;
+}
+
+// Dummy units for testing without scale
+float scaleGetDummyUnits() {
+    static float dummyWeight = 0.0;
+    dummyWeight += 10.0;
+    if (dummyWeight > 1000.0) dummyWeight = 0.0;
+    return dummyWeight;
 }
 
 // Return units for primary scale (same as scaleGetUnits)

@@ -13,6 +13,7 @@ void scaleCalibrateAsync(int which, uint32_t clientId = 0);
 void scaleRead();
 // Return the most recent weight in units (grams by default)
 float scaleGetUnits();
+float scaleGetDummyUnits();  // For testing without scale
 
 // Per-scale getters
 float scaleGetUnits1();
