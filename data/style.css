@@ -38,12 +38,15 @@ main {
 }
 
 .scaleBox {
-    background: var(--accent, #0077cc);
+    background: var(--accent, #8c8d8f);
     border-radius: 10px;
     padding: 12px;
     margin-bottom: 12px;
     color: #fff;
 }
+
+/* make scale boxes flexible in the layout */
+.scaleBox { flex: 1; min-width: 260px; }
 
 .scaleHeader { display:flex; align-items:center; gap:12px; justify-content:space-between; flex-wrap:wrap; }
 
@@ -115,3 +118,80 @@ main {
 
 /* ensure canvas area stays white */
 canvas { background: #fff; border-radius:6px; }
+
+/* Utility classes moved from inline styles in index.html */
+.flexWrap {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.headerRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.labelRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.labelStrong {
+    font-size: 1.6rem;
+    font-weight: 600;
+}
+
+.weightValue {
+    font-size: 1.6rem;
+}
+
+.controlsRow {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.calReading {
+    color: #666;
+    margin-left: 8px;
+}
+
+.graphCanvas {
+    width: 100%;
+    height: 180px;
+    border: 1px solid #ddd;
+    background: #fff;
+}
+
+#graphWrap {
+    margin: 12px;
+}
+
+#windowSelectors {
+    margin-bottom: 8px;
+    display: flex;
+    gap: 8px;
+}
+
+.actionsRow {
+    margin: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.calRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px;
+}
+
+.smallInput {
+    width: 25px;
+    margin: 8px;
+}
