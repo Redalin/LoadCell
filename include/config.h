@@ -17,11 +17,6 @@
     #define debugln(message)
 #endif
 
-// The device hostname
-#define HOSTNAME "LaunchScale"
-#define APNAME "scale.local"
-#define APPASS "wellington"
-
 // Known WiFi networks and passwords
 constexpr const char* KNOWN_SSID[] = {"DRW", "ChrisnAimee.com"};
 constexpr const char* KNOWN_PASSWORD[] = {"wellington", "carbondell"};
@@ -41,13 +36,27 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 // Set to 1 for parent node (receives data), 0 for child node (sends data)
 #define ESPNOW_IS_PARENT 1
 
+#if ESPNOW_IS_PARENT
+  #define DEVICE_ID 1  // Parent node ID
+  #define HOSTNAME "LaunchScale"
+// The device hostname
+#else
+  #define DEVICE_ID 2  // Child node ID
+  #define HOSTNAME "LaunchScalegrey"
+
+#endif
+
+#define APNAME "scale.local"
+#define APPASS "wellington"
+
 // Parent node MAC address (set on parent device)
-#define PARENT_MAC_ADDR {0x24, 0x0A, 0xC4, 0x11, 0x11, 0x11}
+#define PARENT_MAC_ADDR  {0xa0, 0xdd, 0x6c, 0x02, 0xfb, 0xa4}
 
 // Child nodes MAC addresses (for parent to add as peers)
 // Update these with your child device MAC addresses
 #define CHILD_NODE_INTERVAL 1000  // ms between scale readings on child
-#define ESPNOW_CHANNEL 1
+#define ESPNOW_CHANNEL 11
 
 // Board MAC address
-// Master: a0:dd:6c:02:fb:a4
+// Parent: a0:dd:6c:02:fb:a4
+// Child Grey/Yellow: a0:dd:6c:04:47:a8

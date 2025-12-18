@@ -20,12 +20,18 @@ void setup()
   // initialise the OLED display
   displaysetup();
 
-  // initialise ESP-NOW
-  espnowInit();
+    // Only parent need to initialise:
+    // - Wifi and mDNS
+    // - websocket
+    // - web server
+  if (ESPNOW_IS_PARENT) {
+    initWifi();
+    initMDNS();
+    initwebservers();
+  }
 
-  // initialise Wifi as per the connect-wifi file
-  initWifi();
-  initMDNS();
+  // initialise ESP-NOW (after WiFi so channel is correct for peers)
+  espnowInit();
 
   // initialise the scale
   initScale();
@@ -33,10 +39,6 @@ void setup()
   // load persisted settings
   settingsInit();
 
-  // initialise the websocket and web server (parent only)
-  if (ESPNOW_IS_PARENT) {
-    initwebservers();
-  }
 }
 
 void loop()

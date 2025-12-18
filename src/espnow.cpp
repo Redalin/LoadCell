@@ -15,6 +15,11 @@ void espnowOnRecv(const uint8_t *mac_addr, const uint8_t *data, int len);
 void espnowInit() {
   // Initialize WiFi in station mode (required for ESP-NOW)
   WiFi.mode(WIFI_STA);
+
+  if (!ESPNOW_IS_PARENT) {
+    // Child nodes can set a static channel if needed
+    WiFi.channel(ESPNOW_CHANNEL);
+  }
   
   // Initialize ESP-NOW
   if (esp_now_init() != ESP_OK) {
@@ -22,6 +27,10 @@ void espnowInit() {
     return;
   }
   
+  // show the MAC address of this device
+  Serial.print("[DEFAULT] ESP32 Board MAC Address: ");
+  readMacAddress();
+
   // Register send and receive callbacks
   esp_now_register_send_cb(espnowOnSend);
   esp_now_register_recv_cb(espnowOnRecv);
@@ -30,8 +39,6 @@ void espnowInit() {
   
   if (ESPNOW_IS_PARENT) {
     Serial.println("PARENT");
-    Serial.print("[DEFAULT] ESP32 Board MAC Address: ");
-    readMacAddress();
     // Parent node doesn't need to add itself as a peer
     // Child nodes will be added when they pair
   } else {

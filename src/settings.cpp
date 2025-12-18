@@ -2,10 +2,10 @@
 #include "littlefs-conf.h"
 #include <ArduinoJson.h>
 
-static String name1 = "Scale 1";
-static String name2 = "Scale 2";
-static String color1 = "#0077cc";
-static String color2 = "#cc5500";
+static String name1 = "Grey";
+static String name2 = "Yellow";
+static String color1 = "#585a5cff";
+static String color2 = "#e7d90aff";
 static const char *SETTINGS_PATH = "/settings.json";
 
 void settingsInit() {
@@ -64,9 +64,9 @@ String settingsAsJson() {
 }
 
 void settingsResetDefaults() {
-  name1 = "Scale 1";
-  name2 = "Scale 2";
-  color1 = "#0077cc";
-  color2 = "#cc5500";
+  name1 = "Grey";
+  name2 = "Yellow";
+  color1 = "#585a5cff";
+  color2 = "#e7d90aff";
   settingsSave();
 }

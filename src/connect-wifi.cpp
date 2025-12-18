@@ -99,10 +99,11 @@ String connectToWifi() {
     displayText(wifiMessage);
     delay(2000);
 
-    wifiMessage = "http:\\" + String(WiFi.getHostname()) + "\nIP: " + WiFi.localIP().toString();
+    wifiMessage = "http:\\\\" + String(WiFi.getHostname()) + "\nIP: " + WiFi.localIP().toString();
     Serial.println(wifiMessage);
     displayText(wifiMessage);
     delay(2000);
+    Serial.println("Wi-Fi Channel: " + String(WiFi.channel()));
 
     return KNOWN_SSID[n];
   } 
