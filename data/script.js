@@ -22,6 +22,9 @@
   const loadSpecBtn = document.getElementById('loadSpecBtn');
   const specAvg1El = document.getElementById('specAvg1');
   const specAvg2El = document.getElementById('specAvg2');
+  const specThs = document.querySelectorAll('#SpecTable th');
+  const specTh1 = specThs && specThs[1];
+  const specTh2 = specThs && specThs[2];
 
   let MIN_SPEC = (specInputEl && parseFloat(specInputEl.value)) || (specInputEl && parseFloat(specInputEl.placeholder)) || 550;
   if (loadSpecBtn && specInputEl) loadSpecBtn.addEventListener('click', () => {
@@ -143,6 +146,9 @@
     const c2 = (color2El && color2El.value) ? color2El.value : '#cc5500';
     if (box1) box1.style.setProperty('--accent', c1);
     if (box2) box2.style.setProperty('--accent', c2);
+    // update spec table header colors to match graphs
+    updateSpecHeaderColors(c1, c2);
+    updateSpecHeaderText();
     drawAll();
   }
   if (color1El) color1El.addEventListener('input', applyColors);
@@ -184,6 +190,8 @@
       }
     }
     box.classList.remove('editing');
+    // if saved, update spec table headers to reflect new names
+    if (save) updateSpecHeaderText();
     // if saved, persist settings to server
     if (save) {
       const payload = {
@@ -285,6 +293,35 @@
     drawGraph(canvas1, ctx1, data1, c1); 
     drawGraph(canvas2, ctx2, data2, c2); 
     updateSpecTable();
+  }
+
+  // helper: pick readable text color for a given background hex
+  function textColorForBg(hex) {
+    if (!hex) return '#000';
+    const h = hex.replace('#','');
+    const r = parseInt(h.substring(0,2),16);
+    const g = parseInt(h.substring(2,4),16);
+    const b = parseInt(h.substring(4,6),16);
+    const lum = (0.299*r + 0.587*g + 0.114*b) / 255;
+    return lum > 0.6 ? '#000' : '#fff';
+  }
+
+  function updateSpecHeaderColors(c1, c2) {
+    if (specTh1) {
+      specTh1.style.background = c1 || '';
+      specTh1.style.color = textColorForBg(c1);
+    }
+    if (specTh2) {
+      specTh2.style.background = c2 || '';
+      specTh2.style.color = textColorForBg(c2);
+    }
+  }
+
+  function updateSpecHeaderText() {
+    try {
+      if (specTh1 && title1) specTh1.textContent = title1.textContent || (name1 && name1.value) || specTh1.textContent;
+      if (specTh2 && title2) specTh2.textContent = title2.textContent || (name2 && name2.value) || specTh2.textContent;
+    } catch (e) { /* ignore */ }
   }
 
   // compute min/max for the last 5 seconds and update SpecTable; color cells red if below MIN_SPEC, green if over
