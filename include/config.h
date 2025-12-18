@@ -49,4 +49,5 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 #define CHILD_NODE_INTERVAL 1000  // ms between scale readings on child
 #define ESPNOW_CHANNEL 1
 
-
+// Board MAC address
+// Master: a0:dd:6c:02:fb:a4

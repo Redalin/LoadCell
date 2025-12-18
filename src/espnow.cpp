@@ -1,4 +1,5 @@
 #include "espnow.h"
+#include <esp_wifi.h>
 #include "config.h"
 #include <map>
 
@@ -29,6 +30,8 @@ void espnowInit() {
   
   if (ESPNOW_IS_PARENT) {
     Serial.println("PARENT");
+    Serial.print("[DEFAULT] ESP32 Board MAC Address: ");
+    readMacAddress();
     // Parent node doesn't need to add itself as a peer
     // Child nodes will be added when they pair
   } else {
@@ -52,6 +55,18 @@ void espnowInit() {
       return;
     }
     Serial.println("Parent peer added");
+  }
+}
+
+void readMacAddress(){
+  uint8_t baseMac[6];
+  esp_err_t ret = esp_wifi_get_mac(WIFI_IF_STA, baseMac);
+  if (ret == ESP_OK) {
+    Serial.printf("%02x:%02x:%02x:%02x:%02x:%02x\n",
+                  baseMac[0], baseMac[1], baseMac[2],
+                  baseMac[3], baseMac[4], baseMac[5]);
+  } else {
+    Serial.println("Failed to read MAC address");
   }
 }
 

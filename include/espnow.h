@@ -23,6 +23,9 @@ typedef struct {
 // Initialize ESP-NOW (parent or child mode based on config)
 void espnowInit();
 
+// get the MAC address of the ESP32 board
+void readMacAddress();
+
 // Send weight data to parent (child nodes only)
 void espnowSendWeight(float weight);
 
