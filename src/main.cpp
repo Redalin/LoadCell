@@ -30,13 +30,13 @@ void setup()
     initWifi();
     initMDNS();
     initwebservers();
+  } else {
+    // We are a Child node so initialise the scale only
+    initScale();
   }
 
   // initialise ESP-NOW (after WiFi so channel is correct for peers)
   espnowInit();
-
-  // initialise the scale
-  initScale();
 
   // load persisted settings
   settingsInit();
