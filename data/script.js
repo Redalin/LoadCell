@@ -1,7 +1,5 @@
 (() => {
   const statusEl = document.getElementById('status');
-  // local scale elements will be created dynamically and assigned to these vars
-  let weightEl1, weightEl2, tare1Btn, tare2Btn, color1El, color2El, box1, box2, canvas1, canvas2, ctx1, ctx2, title1, title2, name1, name2, calReading1, calReading2;
   const calibrateBtn = document.getElementById('calibrateBtn');
   const calScale = document.getElementById('calScale');
   const calResult = document.getElementById('calResult');
@@ -53,8 +51,9 @@
     titleRow.appendChild(title); titleRow.appendChild(nameInput);
     header.appendChild(titleRow);
     const controls = document.createElement('div');
+    const tareBtn = document.createElement('button'); tareBtn.className = 'dgTare'; tareBtn.textContent = 'Tare';
     const removeBtn = document.createElement('button'); removeBtn.className = 'dgRemove'; removeBtn.textContent = 'Remove';
-    controls.appendChild(colorInput); controls.appendChild(removeBtn);
+    controls.appendChild(colorInput); controls.appendChild(tareBtn); controls.appendChild(removeBtn);
     header.appendChild(controls);
     card.appendChild(header);
     const canvas = document.createElement('canvas'); canvas.className = 'graphCanvas'; canvas.width = 700; canvas.height = 180;
@@ -68,6 +67,7 @@
     // wire inputs
     nameInput.addEventListener('change', () => { g.name = nameInput.value || ('Node ' + id); persistChildSettings(); });
     colorInput.addEventListener('input', () => { g.color = colorInput.value; persistChildSettings(); drawAll(); });
+    tareBtn.addEventListener('click', () => sendTareCommand(id));
     removeBtn.addEventListener('click', () => removeChildGraph(id));
 
     childGraphs.set(String(id), g);
@@ -163,35 +163,10 @@
         } else if (obj.mode === 'child') {
           isParentMode = false;
         }
-        // handle calibration response
-        if (obj.calibrate !== undefined) {
-          const which = obj.scale || 0;
-          const r = obj.calibrate;
-          const text = (isNaN(r) ? 'calibrate failed' : (Number(r).toFixed(3) + ' g'));
-          calResult.textContent = `Scale ${which}: ${text}`;
-          if (which === 1) calReading1.textContent = text;
-          if (which === 2) calReading2.textContent = text;
-        }
-        const now = Date.now();
-        const w1 = obj.weight1 || obj.weight;
-        const w2 = obj.weight2;
-        if (w1 === null || w1 === undefined || isNaN(w1)) {
-          weightEl1.textContent = '-- g';
-          data1.push({ t: now, v: NaN });
-        } else {
-          weightEl1.textContent = Number(w1).toFixed(2) + ' g';
-          data1.push({ t: now, v: Number(w1) });
-        }
-        if (w2 === null || w2 === undefined || isNaN(w2)) {
-          weightEl2.textContent = '-- g';
-          data2.push({ t: now, v: NaN });
-        } else {
-          weightEl2.textContent = Number(w2).toFixed(2) + ' g';
-          data2.push({ t: now, v: Number(w2) });
-        }
         // handle dynamic child nodes (parent mode)
         try { processChildren(obj); } catch (e) { /* ignore */ }
         // trim child graphs and draw
+        const now = Date.now();
         childGraphs.forEach((g) => {
           const cutoff = now - WINDOW_MS;
           while (g.data.length && g.data[0].t < cutoff) g.data.shift();
@@ -216,7 +191,7 @@
       .catch(() => setStatus('Tare failed'));
   }
 
-  // Tare all nodes - send requests to nodes 1-10
+  // Tare all nodes - send requests to all connected child nodes
   tareAllBtn.addEventListener('click', () => {
     if (ws && ws.readyState === WebSocket.OPEN) {
       // Parent mode: loop through all possible child nodes
@@ -232,13 +207,6 @@
       .then(j => setStatus('Tare OK'))
       .catch(() => setStatus('Tare failed'));
   });
-
-  // per-scale tare buttons
-  if (tare1Btn) tare1Btn.addEventListener('click', () => {
-    sendTareCommand(1);
-  });
-  if (tare2Btn) tare2Btn.addEventListener('click', () => {
-    sendTareCommand(2);
 
   // calibration
   if (calibrateBtn) calibrateBtn.addEventListener('click', () => {

@@ -6,17 +6,16 @@
 #include "HX711.h"
 
 void initScale();
-// Tare a specific scale: which=1 or 2, which<=0 => both
-void scaleTare(int which);
-// Calibrate a specific scale: which=1 or 2. Returns measured reading (NaN on error)
-float scaleCalibrate(int which);
-void scaleCalibrateAsync(int which, uint32_t clientId = 0);
-// Read from a specific scale (which=1 or 2). Default to scale 1
-float scaleGetUnits(int which = 1);
-float scaleGetUnits1();
-float scaleGetUnits2();
+// Tare the single scale (child nodes only have one scale)
+void scaleTare();
+void scaleTareAll();  // Tare all connected scales (compatibility function)
+
+// Calibrate the scale (child nodes only have one scale)
+float scaleCalibrate(int which = 1);
+void scaleCalibrateAsync(int which = 1, uint32_t clientId = 0);
+float scaleRead(); // Read from the scale
 float scaleDummyRead();  // For testing without scale
-void scaleTareAll();  // Tare both scales
 
 
-#endif  // LITTLEFS-CONF_H
+
+#endif  // SCALE_H

@@ -50,7 +50,7 @@ void loop()
     webBroadcastLoop();
   } else {
     // Child node: read scale, buffer it, and send averaged data every 500ms
-    float w = scaleGetUnits1();  // Read from primary scale
+    float w = scaleRead();  // Read from primary scale
     if (!isnan(w)) {
       espnowBufferWeight(w);  // Buffer the reading
     }
@@ -59,9 +59,7 @@ void loop()
     
     // Check for pending tare commands
     uint8_t tareScale = espnowGetPendingTareCommand();
-    if (tareScale > 0) {
-      scaleTare(tareScale);  // Tare the specified scale
-    }
+    // ToDo - add Tare command back in
   }
 
   // optional: print weight to Serial and display every 2 seconds
@@ -72,14 +70,9 @@ void loop()
     if (ESPNOW_IS_PARENT) {
       // w = scaleGetDummyUnits();  // Parent shows dummy for demo
     } else {
-      w = scaleGetUnits();  // Child shows its own scale
+      w = scaleRead();  // Child shows its own scale
       mainMessage = String(w);
-      Serial.println(mainMessage + "g");
-      displayWeight(mainMessage); // print weight to OLED
-    }
-      w = scaleGetUnits();  // Child shows its own scale    
-      mainMessage = String(w);
-      Serial.println(mainMessage + "g");
+      // Serial.println(mainMessage + "g");
       displayWeight(mainMessage); // print weight to OLED
     }
   }

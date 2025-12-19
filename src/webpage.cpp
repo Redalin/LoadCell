@@ -62,8 +62,6 @@ void initwebservers(){
       if (request->hasArg("scale")) {
         which = request->arg("scale").toInt();
       }
-      if (which == 1) scaleTare(1);
-      else if (which == 2) scaleTare(2);
       else scaleTareAll();
       request->send(200, "application/json", "{\"status\":\"ok\"}");
     });
@@ -92,7 +90,7 @@ static void notifyClients(){
     doc["mode"] = "parent";
   } else {
     // If child node, just send its own scale data
-    float weight = scaleGetUnits1();
+    float weight = scaleRead();
     if (!isnan(weight)) doc["weight"] = weight; else doc["weight"] = nullptr;
     doc["mode"] = "child";
   }
@@ -161,11 +159,11 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
     } else {
       // Child node: only handle local tare commands
       if (msg == "tare") {
-        scaleTare(1);  // Tare the only scale
+        scaleTare();  // Tare the scale
         notifyClients();
       } else if (msg.startsWith("tare:")) {
         int which = msg.substring(msg.indexOf(':') + 1).toInt();
-        scaleTare(which);
+        scaleTare();
         notifyClients();
       }
     }
