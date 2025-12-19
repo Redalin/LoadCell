@@ -6,20 +6,16 @@
 #include "HX711.h"
 
 void initScale();
-// Tare a specific scale: which=1 or 2, which<=0 => both
-void scaleTare(int which);
-// Calibrate a specific scale (async): which=1 or 2. clientId optional to direct response
-void scaleCalibrateAsync(int which, uint32_t clientId = 0);
-void scaleRead();
-// Return the most recent weight in units (grams by default)
-float scaleGetUnits();
-float scaleGetDummyUnits();  // For testing without scale
+// Tare the single scale (child nodes only have one scale)
+void scaleTare();
+void scaleTareAll();  // Tare all connected scales (compatibility function)
 
-// Per-scale getters
-float scaleGetUnits1();
-float scaleGetUnits2();
-// Compatibility helper: tare both scales
-void scaleTareAll();
+// Calibrate the scale (child nodes only have one scale)
+float scaleCalibrate(int which = 1);
+void scaleCalibrateAsync(int which = 1, uint32_t clientId = 0);
+float scaleRead(); // Read from the scale
+float scaleDummyRead();  // For testing without scale
 
 
-#endif  // LITTLEFS-CONF_H
+
+#endif  // SCALE_H

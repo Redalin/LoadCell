@@ -42,6 +42,8 @@ void initWifi()
     // while (true);
     // We should not be here, no need to go further, hang in there, will auto launch the Soft WDT reset
   }
+  // stop wifi from sleeping
+  WiFi.setSleep(false);
 }
 
 int scanForWifi() {
@@ -99,10 +101,11 @@ String connectToWifi() {
     displayText(wifiMessage);
     delay(2000);
 
-    wifiMessage = "http:\\" + String(WiFi.getHostname()) + "\nIP: " + WiFi.localIP().toString();
+    wifiMessage = "http:\\\\" + String(WiFi.getHostname()) + "\nIP: " + WiFi.localIP().toString();
     Serial.println(wifiMessage);
     displayText(wifiMessage);
     delay(2000);
+    Serial.println("Wi-Fi Channel: " + String(WiFi.channel()));
 
     return KNOWN_SSID[n];
   } 

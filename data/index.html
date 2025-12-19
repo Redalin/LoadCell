@@ -35,60 +35,8 @@
                 </table>
 
             </div>
-        <div class="flexWrap">
-            <div id="scaleBox1" class="scaleBox">
-                <div class="scaleHeader">
-                    <div class="headerRow">
-                        <h2 class="scaleTitle">Grey</h2>
-                        <input class="scaleNameInput" id="scaleName1" value="Grey" />
-                    </div>
-                    <div class="headerRow">
-                        <input id="color1" class="colorPicker" type="color" value="#9e9e9e" title="Scale 1 color" />
-                        <div id="edit1" class="editIcon" title="Edit"><svg viewBox="0 0 24 24">
-                                <path
-                                    d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z" />
-                            </svg></div>
-                    </div>
-                </div>
-                <div class="labelRow">
-                    <div class="labelStrong">Weight:</div>
-                    <div id="weight1" class="weightValue">-- g</div>
-                </div>
-                <div class="controlsRow">
-                    <button id="tare1Btn" class="btn3d">Tare Scale 1</button>
-                    <div id="calReading1" class="calReading"></div>
-                </div>
-                <div style="margin-top:8px;">
-                    <canvas id="weightGraph1" width="700" height="180" class="graphCanvas"></canvas>
-                </div>
-            </div>
-            <div id="scaleBox2" class="scaleBox">
-                <div class="scaleHeader">
-                    <div class="headerRow">
-                        <h2 class="scaleTitle">Yellow</h2>
-                        <input class="scaleNameInput" id="scaleName2" value="Yellow" />
-                    </div>
-                    <div class="headerRow">
-                        <input id="color2" class="colorPicker" type="color" value="#ccbf28" title="Scale 2 color" />
-                        <div id="edit2" class="editIcon" title="Edit"><svg viewBox="0 0 24 24">
-                                <path
-                                    d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z" />
-                            </svg></div>
-                    </div>
-                </div>
-                <div class="labelRow">
-                    <div class="labelStrong">Weight:</div>
-                    <div id="weight2" class="weightValue">-- g</div>
-                </div>
-                <div class="controlsRow">
-                    <button id="tare2Btn" class="btn3d">Tare Scale 2</button>
-                    <div id="calReading2" class="calReading"></div>
-                </div>
-                <div style="margin-top:8px;">
-                    <canvas id="weightGraph2" width="700" height="180" class="graphCanvas"></canvas>
-                </div>
-            </div>
-        </div>
+        <!-- scale boxes (local scales) will be created dynamically here -->
+        <div id="scaleBoxes" class="flexWrap"></div>
         <div id="graphWrap">
             <label for="calScale">Select Time Window</label>
             <div id="windowSelectors">
@@ -96,6 +44,8 @@
                 <button class="winBtn" data-ms="20000">20s</button>
                 <button class="winBtn active" data-ms="300000">5min</button>
             </div>
+            <!-- Dynamic graphs for child nodes will be inserted here -->
+            <div id="dynamicGraphs" class="dynamicGraphs"></div>
         </div>
         <div class="actionsRow">
             <button id="tareAllBtn" class="btn3d" >Tare All</button>

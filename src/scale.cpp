@@ -8,11 +8,11 @@
 
 static SemaphoreHandle_t scaleMutex = NULL;
 HX711 scale;
-HX711 scale2;
 String scaleMessage = "";
 
 void initScale() {
     // Initialization code for the scale
+    // Child nodes only have ONE scale
 
     // HX711 pins and calibration are defined in include/config.h
 
@@ -22,7 +22,7 @@ void initScale() {
     }
 
     if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
-    // init primary scale
+    // init primary scale (only one scale per child node)
     scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
     scale.set_scale(CALIBRATION_FACTOR);
     if (scale.wait_ready_timeout(500)) {
@@ -30,113 +30,47 @@ void initScale() {
     } else {
         Serial.println("HX711 not found during init (will retry later)");
     }
-    // init second scale
-    scale2.begin(LOADCELL2_DOUT_PIN, LOADCELL2_SCK_PIN);
-    scale2.set_scale(LOADCELL2_CALIBRATION_FACTOR);
-    if (scale2.wait_ready_timeout(500)) {
-        scale2.tare();
-    } else {
-        Serial.println("HX711 (2) not found during init (will retry later)");
-    }
     if (scaleMutex) xSemaphoreGive(scaleMutex);
     Serial.println("Scale initialized.");
 }
 
-// Calibrate specific scale. which=1 or 2. Returns measured reading (NaN on error)
+// Calibrate scale (child nodes only have one scale)
 float scaleCalibrate(int which) {
     float result = NAN;
     if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
-    if (which == 1) {
-        if (scale.wait_ready_timeout(1000)) {
-            scale.set_scale(1.0); // remove existing calibration
-            Serial.println("Tare... remove any weights from scale 1.");
-            delay(500);
-            scale.tare();
-            Serial.println("Put a known weight on scale 1.");
-            delay(2000);
-            result = scale.get_units(10);
-            Serial.print("Calibrate result (1): "); Serial.println(result);
-        } else {
-            Serial.println("HX711 (1) not found for calibrate.");
-        }
-    } else if (which == 2) {
-        if (scale2.wait_ready_timeout(1000)) {
-            scale2.set_scale(1.0);
-            Serial.println("Tare... remove any weights from scale 2.");
-            delay(500);
-            scale2.tare();
-            Serial.println("Put a known weight on scale 2.");
-            delay(2000);
-            result = scale2.get_units(10);
-            Serial.print("Calibrate result (2): "); Serial.println(result);
-        } else {
-            Serial.println("HX711 (2) not found for calibrate.");
-        }
+    // Child nodes only have one scale, so ignore 'which' parameter
+    if (scale.wait_ready_timeout(1000)) {
+        scale.set_scale(1.0); // remove existing calibration
+        Serial.println("Tare... remove any weights from scale.");
+        delay(500);
+        scale.tare();
+        Serial.println("Put a known weight on scale.");
+        delay(2000);
+        result = scale.get_units(10);
+        Serial.print("Calibrate result: "); Serial.println(result);
     } else {
-        // invalid which - do nothing
+        Serial.println("HX711 not found for calibrate.");
     }
     if (scaleMutex) xSemaphoreGive(scaleMutex);
     return result;
 }
 
-// Tare one or both scales. which=1 or 2, otherwise both.
-void scaleTare(int which) {
+// Tare the single scale on child node
+void scaleTare() {
     if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
-    if (which == 1) {
-        Serial.println("Tare scale 1...");
-        if (scale.wait_ready_timeout(500)) scale.tare(); else Serial.println("HX711 not found (scale 1).");
-    } else if (which == 2) {
-        Serial.println("Tare scale 2...");
-        if (scale2.wait_ready_timeout(500)) scale2.tare(); else Serial.println("HX711 not found (scale 2).");
-    } else {
-        Serial.println("Tare both scales...");
-        if (scale.wait_ready_timeout(500)) scale.tare(); else Serial.println("HX711 not found (scale 1).");
-        if (scale2.wait_ready_timeout(500)) scale2.tare(); else Serial.println("HX711 not found (scale 2).");
-    }
+    // Child nodes only have one scale, so ignore 'which' parameter
+    Serial.println("Tare scale...");
+    if (scale.wait_ready_timeout(500)) scale.tare(); else Serial.println("HX711 not found.");
     Serial.println("Tare done...");
     if (scaleMutex) xSemaphoreGive(scaleMutex);
 }
 
-void scaleRead() {
 
-    if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
-    if (scale.wait_ready_timeout(200)) {
-        float reading = scale.get_units();
-        scaleMessage = "Scale reading: " + String(reading) + " g";
-    } else {
-        scaleMessage = "HX711 not found.";
-    }
-    Serial.println(scaleMessage);
-    displayText(scaleMessage);
-    if (scaleMutex) xSemaphoreGive(scaleMutex);
-}
-
-float scaleGetUnits() {
+// Read from the single scale (child nodes only)
+float scaleRead() {
     float result = NAN;
     if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
-    if (scale.wait_ready_timeout(200)) {
-        // average a few readings for stability
-        float reading = scale.get_units(5);
-        result = reading;
-    } else {
-        Serial.println("HX711 not ready");
-    }
-    if (scaleMutex) xSemaphoreGive(scaleMutex);
-    return result;
-}
-
-// Dummy units for testing without scale
-float scaleGetDummyUnits() {
-    static float dummyWeight = 0.0;
-    dummyWeight += 10.0;
-    if (dummyWeight > 1000.0) dummyWeight = 0.0;
-    return dummyWeight;
-}
-
-// Return units for primary scale (same as scaleGetUnits)
-float scaleGetUnits1() {
-    float result = NAN;
-    if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
+    // Child nodes only have one scale, so ignore 'which' parameter
     if (scale.wait_ready_timeout(200)) {
         result = scale.get_units(5);
     }
@@ -144,19 +78,18 @@ float scaleGetUnits1() {
     return result;
 }
 
-// Return units for secondary scale
-float scaleGetUnits2() {
-    float result = NAN;
-    if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
-    if (scale2.wait_ready_timeout(200)) {
-        result = scale2.get_units(5);
-    }
-    if (scaleMutex) xSemaphoreGive(scaleMutex);
-    return result;
+// Dummy units for testing without scale
+float scaleDummyRead() {
+    static float dummyWeight = 0.0;
+    dummyWeight += 10.0;
+    if (dummyWeight > 1000.0) dummyWeight = 0.0;
+    return dummyWeight;
 }
 
-// Compatibility: tare both scales
-void scaleTareAll() { scaleTare(0); }
+// Compatibility helper: tare both scales
+void scaleTareAll() {
+    scaleTare();
+}
 
 // Async calibrate task wrapper
 struct CalArgs { int which; uint32_t clientId; };

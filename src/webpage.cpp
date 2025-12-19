@@ -2,6 +2,8 @@
 #include "littlefs-conf.h"
 #include "scale.h"
 #include "settings.h"
+#include "espnow.h"
+#include "config.h"
 #include <ArduinoJson.h>
 
 
@@ -53,17 +55,17 @@ void initwebservers(){
     if (ok) request->send(200, "application/json", "{\"status\":\"ok\"}"); else request->send(500, "application/json", "{\"error\":\"save failed\"}");
   });
 
-  // provide a simple HTTP endpoint to tare the scale
-  server.on("/tare", HTTP_POST, [](AsyncWebServerRequest *request){
-    int which = 0;
-    if (request->hasArg("scale")) {
-      which = request->arg("scale").toInt();
-    }
-    if (which == 1) scaleTare(1);
-    else if (which == 2) scaleTare(2);
-    else scaleTareAll();
-    request->send(200, "application/json", "{\"status\":\"ok\"}");
-  });
+  // provide a simple HTTP endpoint to tare the scale (child nodes only)
+  if (!ESPNOW_IS_PARENT) {
+    server.on("/tare", HTTP_POST, [](AsyncWebServerRequest *request){
+      int which = 0;
+      if (request->hasArg("scale")) {
+        which = request->arg("scale").toInt();
+      }
+      else scaleTareAll();
+      request->send(200, "application/json", "{\"status\":\"ok\"}");
+    });
+  }
 
   server.serveStatic("/", LittleFS, "/");
   server.begin();
@@ -73,12 +75,27 @@ void initwebservers(){
 
 // Send current weight to all connected websocket clients as JSON
 static void notifyClients(){
-  float weight1 = scaleGetUnits1();
-  float weight2 = scaleGetUnits2();
-  StaticJsonDocument<192> doc;
-  if (!isnan(weight1)) doc["weight1"] = weight1; else doc["weight1"] = nullptr;
-  if (!isnan(weight2)) doc["weight2"] = weight2; else doc["weight2"] = nullptr;
-  char buf[192];
+  StaticJsonDocument<512> doc;
+  
+  // If parent node, only include child node data from ESP-NOW
+  if (ESPNOW_IS_PARENT) {
+    // Include child node data (add up to 10 child nodes)
+    JsonObject children = doc.createNestedObject("children");
+    for (uint8_t i = 1; i <= 10; i++) {
+      float childWeight = espnowGetChildWeight(i);
+      if (!isnan(childWeight)) {
+        children[String(i)] = childWeight;
+      }
+    }
+    doc["mode"] = "parent";
+  } else {
+    // If child node, just send its own scale data
+    float weight = scaleRead();
+    if (!isnan(weight)) doc["weight"] = weight; else doc["weight"] = nullptr;
+    doc["mode"] = "child";
+  }
+  
+  char buf[512];
   size_t n = serializeJson(doc, buf);
   ws.textAll(buf, n);
 }
@@ -99,21 +116,56 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
     // incoming message (assume simple text commands)
     String msg = String((char*)data).substring(0, len);
     Serial.println("WS Received: " + msg);
-    // commands: tare, tare:1, tare:2, calibrate:1, calibrate:2
-    if (msg == "tare") {
-      scaleTareAll();
-      notifyClients();
-    } else if (msg.startsWith("tare:")) {
-      int which = msg.substring(msg.indexOf(':') + 1).toInt();
-      scaleTare(which);
-      notifyClients();
-    } else if (msg.startsWith("calibrate:")) {
-      int which = msg.substring(msg.indexOf(':') + 1).toInt();
-      // start async calibration; pass client id so result can be returned
-      uint32_t cid = client ? client->id() : 0;
-      scaleCalibrateAsync(which, cid);
-      // immediate ack to requester
-      if (client) client->text("{\"status\":\"calibrating\"}");
+    
+    if (ESPNOW_IS_PARENT) {
+      // Parent node: convert simple tare commands to child node commands
+      // tare -> tare all children (not implemented, ignore)
+      // tare:X -> send to child node X, scale 1
+      // tare:child:nodeId -> send to child node
+      // tare:child:nodeId:scale -> send to child node with specific scale
+      
+      if (msg == "tare") {
+        // Tare all - not implemented for parent mode (parent has no local scales)
+        Serial.println("Tare all ignored (parent has no local scales)");
+        notifyClients();
+      } else if (msg.startsWith("tare:child:")) {
+        // Parse: "tare:child:nodeId" or "tare:child:nodeId:scale"
+        String remainder = msg.substring(11);  // Skip "tare:child:"
+        int colonIdx = remainder.indexOf(':');
+        uint8_t nodeId, scale = 1;
+        
+        if (colonIdx > 0) {
+          nodeId = remainder.substring(0, colonIdx).toInt();
+          scale = remainder.substring(colonIdx + 1).toInt();
+        } else {
+          nodeId = remainder.toInt();
+        }
+        
+        Serial.print("Sending tare command to node ");
+        Serial.print(nodeId);
+        Serial.print(" scale ");
+        Serial.println(scale);
+        espnowSendTare(nodeId, scale);
+        notifyClients();
+      } else if (msg.startsWith("tare:")) {
+        // Simple format: tare:nodeId -> send to child node with scale 1
+        uint8_t nodeId = msg.substring(5).toInt();
+        Serial.print("Sending tare command to child node ");
+        Serial.print(nodeId);
+        Serial.println(" scale 1");
+        espnowSendTare(nodeId, 1);
+        notifyClients();
+      }
+    } else {
+      // Child node: only handle local tare commands
+      if (msg == "tare") {
+        scaleTare();  // Tare the scale
+        notifyClients();
+      } else if (msg.startsWith("tare:")) {
+        int which = msg.substring(msg.indexOf(':') + 1).toInt();
+        scaleTare();
+        notifyClients();
+      }
     }
   }
 }
