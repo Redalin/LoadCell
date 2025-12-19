@@ -86,6 +86,8 @@
 
   function processChildren(obj) {
     if (!obj || !obj.children) return;
+    // Debug: show which child keys arrived
+    try { console.log('processChildren keys:', Object.keys(obj.children)); } catch (e) {}
     const now = Date.now();
     Object.keys(obj.children).forEach(k => {
       const val = obj.children[k];
@@ -224,89 +226,23 @@
     // Colors for child graphs are managed per-graph; just redraw the table/graphs
     drawAll();
   }
-  if (color1El) color1El.addEventListener('input', applyColors);
-  if (color2El) color2El.addEventListener('input', applyColors);
+  // No global color inputs for parent UI; just apply initial colors
   applyColors();
 
-  // edit UI (no local scale edit controls since local UI removed)
+  // Clear dynamic child data
+  clearBtn.addEventListener('click', () => { childGraphs.forEach(g => { g.data.length = 0; }); drawAll(); setStatus('Data cleared'); });
 
-  function beginEdit(box, which) {
-    box.classList.add('editing');
-    // focus name input
-    if (box.id === 'scaleBox1') name1.focus(); else name2.focus();
-  }
-  function endEdit(box, save) {
-    if (!save) {
-      // revert name and color to previous values
-      if (box.id === 'scaleBox1') {
-        name1.value = title1.textContent;
-        color1El.value = color1El.getAttribute('value') || '#0077cc';
-      } else {
-        name2.value = title2.textContent;
-        color2El.value = color2El.getAttribute('value') || '#cc5500';
-      }
-      applyColors();
-    } else {
-      // save title
-      if (box.id === 'scaleBox1') {
-        title1.textContent = name1.value;
-        color1El.setAttribute('value', color1El.value);
-      } else {
-        title2.textContent = name2.value;
-        color2El.setAttribute('value', color2El.value);
-      }
-    }
-    box.classList.remove('editing');
-    // if saved, update spec table headers to reflect new names
-    if (save) updateSpecHeaderText();
-    // if saved, persist settings to server
-    if (save) {
-      const payload = {
-        name1: document.getElementById('scaleName1').value,
-        name2: document.getElementById('scaleName2').value,
-        color1: document.getElementById('color1').value,
-        color2: document.getElementById('color2').value
-      };
-      fetch('/settings', { method: 'POST', body: JSON.stringify(payload), headers: {'Content-Type':'application/json'} })
-        .then(r => r.json()).then(j => { if (j.status === 'ok') setStatus('Settings saved'); else setStatus('Save failed'); })
-        .catch(() => setStatus('Save failed'));
-    }
-  }
-
-  if (edit1) edit1.addEventListener('click', () => beginEdit(box1, 1));
-  if (edit2) edit2.addEventListener('click', () => beginEdit(box2, 2));
-
-  // add save/cancel buttons dynamically inside each box header when editing
-  function createEditControls(box) {
-    let ctr = box.querySelector('.editControls');
-    if (ctr) return ctr;
-    ctr = document.createElement('div'); ctr.className = 'editControls';
-    const save = document.createElement('button'); save.className = 'saveBtn';
-    save.setAttribute('title','Save');
-    save.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.2l-3.5-3.5L4 14.2 9 19l12-12-1.5-1.5z"/></svg>';
-    const cancel = document.createElement('button'); cancel.className = 'cancelBtn';
-    cancel.setAttribute('title','Cancel');
-    cancel.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 6.4L17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z"/></svg>';
-    ctr.appendChild(save); ctr.appendChild(cancel);
-    const header = box.querySelector('.scaleHeader'); header.appendChild(ctr);
-    save.addEventListener('click', () => endEdit(box, true));
-    cancel.addEventListener('click', () => endEdit(box, false));
-    return ctr;
-  }
-  // edit controls removed for local scales (no local boxes)
-
-  clearBtn.addEventListener('click', () => { data1.length = 0; data2.length = 0; drawAll(); setStatus('Data cleared'); });
-
+  // Reset persisted child display settings to defaults
   const resetBtn = document.getElementById('resetBtn');
   if (resetBtn) resetBtn.addEventListener('click', () => {
-    if (!confirm('Reset scale names and colors to defaults?')) return;
+    if (!confirm('Reset child names and colors to defaults?')) return;
     fetch('/settings/reset', { method: 'POST' })
       .then(r => r.json())
       .then(j => {
-        if (j.name1) { title1.textContent = j.name1; name1.value = j.name1; }
-        if (j.name2) { title2.textContent = j.name2; name2.value = j.name2; }
-        if (j.color1) { color1El.value = j.color1; color1El.setAttribute('value', j.color1); }
-        if (j.color2) { color2El.value = j.color2; color2El.setAttribute('value', j.color2); }
+        // clear persisted overrides
+        localStorage.removeItem('childNames');
+        localStorage.removeItem('childColors');
+        childGraphs.forEach((g, id) => { g.name = 'Node ' + id; g.color = '#0077cc'; });
         applyColors();
         setStatus('Defaults restored');
       }).catch(()=> setStatus('Reset failed'));
@@ -421,16 +357,8 @@
     specTable.appendChild(tbody);
   }
 
-  // compute min/max for the last 5 seconds and update SpecTable; color cells red if below MIN_SPEC, green if over
-  function updateSpecTable() {
-    const lastMs = 5000;
-    const now = Date.now();
-    const cutoff = now - lastMs;
-    // No local scales: show placeholders for spec averages
-    if (specAvg1El) { specAvg1El.textContent = '-- g'; specAvg1El.style.background = ''; specAvg1El.title = ''; }
-    if (specAvg2El) { specAvg2El.textContent = '-- g'; specAvg2El.style.background = ''; specAvg2El.title = ''; }
-  }
+  // (updateSpecTable is defined earlier to build the table from active child graphs)
 
-  setInterval(drawAll, 1000);
+  setInterval(drawAll, 2000);  // Reduced from 1000ms to lower client-side redraw load
 
 })();

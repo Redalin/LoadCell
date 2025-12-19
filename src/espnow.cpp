@@ -204,6 +204,15 @@ float espnowGetChildWeight(uint8_t childId) {
   return NAN;
 }
 
+void espnowForEachChildWeight(void (*callback)(uint8_t childId, float weight)) {
+  // Iterate through the map and call the callback for each child node
+  for (auto& pair : childWeights) {
+    if (callback) {
+      callback(pair.first, pair.second);
+    }
+  }
+}
+
 uint8_t espnowGetPendingTareCommand() {
   uint8_t cmd = pendingTareCommand;
   pendingTareCommand = 0;  // Clear after reading

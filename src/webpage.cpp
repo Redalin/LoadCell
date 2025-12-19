@@ -4,14 +4,17 @@
 #include "settings.h"
 #include "espnow.h"
 #include "config.h"
+#include <map>
 #include <ArduinoJson.h>
 
 
 AsyncWebSocket ws("/ws");
 AsyncWebServer server(80);
-// broadcast interval (ms)
-static const unsigned long BROADCAST_INTERVAL = 1000;
+// broadcast interval (ms) - reduced load by increasing interval
+static const unsigned long BROADCAST_INTERVAL = 2500;
 static unsigned long lastBroadcast = 0;
+// Track last sent child weights to only broadcast on data change (delta mode)
+static std::map<uint8_t, float> lastSentWeights;
 
 
 void initwebservers(){ 
@@ -73,20 +76,43 @@ void initwebservers(){
   Serial.println("Init Done. Ready");
 }
 
+// Callback helper for building the children JSON object
+static StaticJsonDocument<512> *globalDoc = nullptr;
+static bool dataChanged = false;
+
+static void addChildToJson(uint8_t childId, float weight) {
+  if (globalDoc) {
+    JsonObject children = (*globalDoc)["children"];
+    children[String(childId)] = weight;
+    // Check if this child's weight changed
+    auto it = lastSentWeights.find(childId);
+    if (it == lastSentWeights.end() || it->second != weight) {
+      dataChanged = true;
+      lastSentWeights[childId] = weight;
+    }
+  }
+}
+
 // Send current weight to all connected websocket clients as JSON
 static void notifyClients(){
   StaticJsonDocument<512> doc;
   
   // If parent node, only include child node data from ESP-NOW
   if (ESPNOW_IS_PARENT) {
-    // Include child node data (add up to 10 child nodes)
+    // Reset change flag
+    dataChanged = false;
+    
+    // Include child node data using callback iteration (avoids looping 1-255)
     JsonObject children = doc.createNestedObject("children");
-    for (uint8_t i = 1; i <= 10; i++) {
-      float childWeight = espnowGetChildWeight(i);
-      if (!isnan(childWeight)) {
-        children[String(i)] = childWeight;
-      }
+    globalDoc = &doc;
+    espnowForEachChildWeight(addChildToJson);
+    globalDoc = nullptr;
+    
+    // Only send if data changed or if this is a new client (deltaMode)
+    if (!dataChanged && ws.count() > 0) {
+      return;  // Skip broadcast if no changes
     }
+    
     doc["mode"] = "parent";
   } else {
     // If child node, just send its own scale data
