@@ -26,6 +26,11 @@ void espnowInit();
 // get the MAC address of the ESP32 board
 void readMacAddress();
 
+// ESP-NOW callbacks
+void espnowOnSend(const uint8_t *mac_addr, esp_now_send_status_t status);
+void espnowOnRecv(const uint8_t *mac_addr, const uint8_t *data, int len);
+
+
 // Send weight data to parent (child nodes only)
 void espnowSendWeight(float weight);
 
@@ -43,6 +48,14 @@ uint8_t espnowGetPendingTareCommand();
 
 // Called regularly to handle any pending ESP-NOW tasks
 void espnowLoop();
+
+// Add a weight reading to the buffer (child only)
+// Should be called frequently to collect samples over 500ms window
+void espnowBufferWeight(float weight);
+
+// Get the average weight and send if 500ms interval has passed (child only)
+// Should be called regularly from main loop
+void espnowSendAveragedWeightIfReady();
 
 // Print connected peer information (debug)
 void espnowPrintPeers();

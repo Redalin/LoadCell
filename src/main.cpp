@@ -20,6 +20,8 @@ void setup()
   // initialise the OLED display
   displaysetup();
 
+  // Ok even the Child nodes need Wifi
+
     // Only parent need to initialise:
     // - Wifi and mDNS
     // - websocket
@@ -47,15 +49,13 @@ void loop()
   if (ESPNOW_IS_PARENT) {
     webBroadcastLoop();
   } else {
-    // Child node: read scale and send via ESP-NOW
-    static unsigned long lastSend = 0;
-    if (millis() - lastSend >= CHILD_NODE_INTERVAL) {
-      lastSend = millis();
-      float w = scaleGetUnits1();  // Read from primary scale
-      if (!isnan(w)) {
-        espnowSendWeight(w);
-      }
+    // Child node: read scale, buffer it, and send averaged data every 500ms
+    float w = scaleGetUnits1();  // Read from primary scale
+    if (!isnan(w)) {
+      espnowBufferWeight(w);  // Buffer the reading
     }
+    
+    espnowSendAveragedWeightIfReady();  // Send average every 500ms if buffer has data
     
     // Check for pending tare commands
     uint8_t tareScale = espnowGetPendingTareCommand();
@@ -70,13 +70,13 @@ void loop()
     lastPrint = millis();
     float w;
     if (ESPNOW_IS_PARENT) {
-      w = scaleGetDummyUnits();  // Parent shows dummy for demo
+      // w = scaleGetDummyUnits();  // Parent shouldn't have scales shows dummy for demo
     } else {
-      w = scaleGetUnits1();  // Child shows its own scale
+      w = scaleGetUnits();  // Child shows its own scale    
+      mainMessage = String(w);
+      Serial.println(mainMessage + "g");
+      displayWeight(mainMessage); // print weight to OLED
     }
-    mainMessage = String(w);
-    Serial.println(mainMessage + "g");
-    displayWeight(mainMessage);
   }
   delay(200);
 }

@@ -55,17 +55,19 @@ void initwebservers(){
     if (ok) request->send(200, "application/json", "{\"status\":\"ok\"}"); else request->send(500, "application/json", "{\"error\":\"save failed\"}");
   });
 
-  // provide a simple HTTP endpoint to tare the scale
-  server.on("/tare", HTTP_POST, [](AsyncWebServerRequest *request){
-    int which = 0;
-    if (request->hasArg("scale")) {
-      which = request->arg("scale").toInt();
-    }
-    if (which == 1) scaleTare(1);
-    else if (which == 2) scaleTare(2);
-    else scaleTareAll();
-    request->send(200, "application/json", "{\"status\":\"ok\"}");
-  });
+  // provide a simple HTTP endpoint to tare the scale (child nodes only)
+  if (!ESPNOW_IS_PARENT) {
+    server.on("/tare", HTTP_POST, [](AsyncWebServerRequest *request){
+      int which = 0;
+      if (request->hasArg("scale")) {
+        which = request->arg("scale").toInt();
+      }
+      if (which == 1) scaleTare(1);
+      else if (which == 2) scaleTare(2);
+      else scaleTareAll();
+      request->send(200, "application/json", "{\"status\":\"ok\"}");
+    });
+  }
 
   server.serveStatic("/", LittleFS, "/");
   server.begin();
@@ -77,13 +79,8 @@ void initwebservers(){
 static void notifyClients(){
   StaticJsonDocument<512> doc;
   
-  // If parent node, include local scales and child node data
+  // If parent node, only include child node data from ESP-NOW
   if (ESPNOW_IS_PARENT) {
-    float weight1 = scaleGetUnits1();
-    float weight2 = scaleGetUnits2();
-    if (!isnan(weight1)) doc["weight1"] = weight1; else doc["weight1"] = nullptr;
-    if (!isnan(weight2)) doc["weight2"] = weight2; else doc["weight2"] = nullptr;
-    
     // Include child node data (add up to 10 child nodes)
     JsonObject children = doc.createNestedObject("children");
     for (uint8_t i = 1; i <= 10; i++) {
@@ -123,9 +120,17 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
     Serial.println("WS Received: " + msg);
     
     if (ESPNOW_IS_PARENT) {
-      // Parent node: handle tare commands for child nodes
-      // commands: tare:child:nodeId, tare:child:nodeId:scale
-      if (msg.startsWith("tare:child:")) {
+      // Parent node: convert simple tare commands to child node commands
+      // tare -> tare all children (not implemented, ignore)
+      // tare:X -> send to child node X, scale 1
+      // tare:child:nodeId -> send to child node
+      // tare:child:nodeId:scale -> send to child node with specific scale
+      
+      if (msg == "tare") {
+        // Tare all - not implemented for parent mode (parent has no local scales)
+        Serial.println("Tare all ignored (parent has no local scales)");
+        notifyClients();
+      } else if (msg.startsWith("tare:child:")) {
         // Parse: "tare:child:nodeId" or "tare:child:nodeId:scale"
         String remainder = msg.substring(11);  // Skip "tare:child:"
         int colonIdx = remainder.indexOf(':');
@@ -144,20 +149,14 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
         Serial.println(scale);
         espnowSendTare(nodeId, scale);
         notifyClients();
-      } 
-      // Local parent scale tare commands
-      else if (msg == "tare") {
-        scaleTareAll();
-        notifyClients();
       } else if (msg.startsWith("tare:")) {
-        int which = msg.substring(msg.indexOf(':') + 1).toInt();
-        scaleTare(which);
+        // Simple format: tare:nodeId -> send to child node with scale 1
+        uint8_t nodeId = msg.substring(5).toInt();
+        Serial.print("Sending tare command to child node ");
+        Serial.print(nodeId);
+        Serial.println(" scale 1");
+        espnowSendTare(nodeId, 1);
         notifyClients();
-      } else if (msg.startsWith("calibrate:")) {
-        int which = msg.substring(msg.indexOf(':') + 1).toInt();
-        uint32_t cid = client ? client->id() : 0;
-        scaleCalibrateAsync(which, cid);
-        if (client) client->text("{\"status\":\"calibrating\"}");
       }
     } else {
       // Child node: only handle local tare commands

@@ -73,13 +73,13 @@ float scaleCalibrate(int which) {
             Serial.println("HX711 (2) not found for calibrate.");
         }
     } else {
-        // invalid which - do nothing
+        Serial.println("Invalid scale number for calibrate.");
     }
     if (scaleMutex) xSemaphoreGive(scaleMutex);
     return result;
 }
 
-// Tare one or both scales. which=1 or 2, otherwise both.
+// Tare a specific scale (which=1 or 2, which<=0 => both)
 void scaleTare(int which) {
     if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
     if (which == 1) {
@@ -97,68 +97,49 @@ void scaleTare(int which) {
     if (scaleMutex) xSemaphoreGive(scaleMutex);
 }
 
-void scaleRead() {
 
-    if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
-    if (scale.wait_ready_timeout(200)) {
-        float reading = scale.get_units();
-        scaleMessage = "Scale reading: " + String(reading) + " g";
-    } else {
-        scaleMessage = "HX711 not found.";
-    }
-    Serial.println(scaleMessage);
-    displayText(scaleMessage);
-    if (scaleMutex) xSemaphoreGive(scaleMutex);
-}
-
-float scaleGetUnits() {
+// Read from a specific scale (which=1 or 2). Default to scale 1
+float scaleGetUnits(int which) {
     float result = NAN;
     if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
-    if (scale.wait_ready_timeout(200)) {
-        // average a few readings for stability
-        float reading = scale.get_units(5);
-        result = reading;
-    } else {
-        Serial.println("HX711 not ready");
+    if (which == 1) {
+        if (scale.wait_ready_timeout(200)) {
+            result = scale.get_units(5);
+        }
+    } else if (which == 2) {
+        if (scale2.wait_ready_timeout(200)) {
+            result = scale2.get_units(5);
+        }
     }
     if (scaleMutex) xSemaphoreGive(scaleMutex);
     return result;
 }
 
+// Convenience functions for specific scales
+float scaleGetUnits1() {
+    return scaleGetUnits(1);
+}
+
+float scaleGetUnits2() {
+    return scaleGetUnits(2);
+}
+
+// Legacy name for backward compatibility
+float scaleRead() {
+    return scaleGetUnits(1);
+
 // Dummy units for testing without scale
-float scaleGetDummyUnits() {
+float scaleDummyRead() {
     static float dummyWeight = 0.0;
     dummyWeight += 10.0;
     if (dummyWeight > 1000.0) dummyWeight = 0.0;
     return dummyWeight;
 }
 
-// Return units for primary scale (same as scaleGetUnits)
-float scaleGetUnits1() {
-    float result = NAN;
-    if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
-    if (scale.wait_ready_timeout(200)) {
-        result = scale.get_units(5);
-    }
-    if (scaleMutex) xSemaphoreGive(scaleMutex);
-    return result;
-    // return scaleGetDummyUnits();  // For testing without scale
+// Compatibility helper: tare both scales
+void scaleTareAll() {
+    scaleTare(0);
 }
-
-// Return units for secondary scale
-float scaleGetUnits2() {
-    float result = NAN;
-    if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
-    if (scale2.wait_ready_timeout(200)) {
-        result = scale2.get_units(5);
-    }
-    if (scaleMutex) xSemaphoreGive(scaleMutex);
-    return result;
-    // return scaleGetDummyUnits();  // For testing without scale
-}
-
-// Compatibility: tare both scales
-void scaleTareAll() { scaleTare(0); }
 
 // Async calibrate task wrapper
 struct CalArgs { int which; uint32_t clientId; };

@@ -58,8 +58,9 @@
     setTimeout(() => { if (statusEl.textContent === s) statusEl.textContent = ''; }, 1500);
   }
 
-  // websocket
   let ws;
+  let isParentMode = false;  // Track if this is a parent node
+  
   function connect() {
     const loc = window.location;
     const protocol = (loc.protocol === 'https:') ? 'wss://' : 'ws://';
@@ -78,6 +79,12 @@
     ws.onmessage = (ev) => {
       try {
         const obj = JSON.parse(ev.data);
+        // Check if parent or child mode
+        if (obj.mode === 'parent') {
+          isParentMode = true;
+        } else if (obj.mode === 'child') {
+          isParentMode = false;
+        }
         // handle calibration response
         if (obj.calibrate !== undefined) {
           const which = obj.scale || 0;
@@ -88,7 +95,7 @@
           if (which === 2) calReading2.textContent = text;
         }
         const now = Date.now();
-        const w1 = obj.weight1;
+        const w1 = obj.weight1 || obj.weight;
         const w2 = obj.weight2;
         if (w1 === null || w1 === undefined || isNaN(w1)) {
           weightEl1.textContent = '-- g';
@@ -114,20 +121,43 @@
   }
   connect();
 
+  // Modular tare function - sends tare request for a specific node
+  function sendTareCommand(nodeId) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send('tare:' + nodeId);
+      setStatus('Tare ' + nodeId + ' sent');
+      return;
+    }
+    // Fallback to HTTP endpoint (for child nodes only)
+    fetch('/tare?scale=' + nodeId, { method: 'POST' })
+      .then(r => r.json())
+      .then(j => setStatus('Tare OK'))
+      .catch(() => setStatus('Tare failed'));
+  }
+
+  // Tare all nodes - send requests to nodes 1-10
   tareAllBtn.addEventListener('click', () => {
-    if (ws && ws.readyState === WebSocket.OPEN) { ws.send('tare'); setStatus('Tare sent'); return; }
-    fetch('/tare', { method: 'POST' }).then(r => r.json()).then(j => setStatus('Tare OK')).catch(() => setStatus('Tare failed'));
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      // Parent mode: loop through all possible child nodes
+      for (let i = 1; i <= 10; i++) {
+        ws.send('tare:' + i);
+      }
+      setStatus('Tare all sent');
+      return;
+    }
+    // Child mode or WS unavailable: use HTTP endpoint
+    fetch('/tare', { method: 'POST' })
+      .then(r => r.json())
+      .then(j => setStatus('Tare OK'))
+      .catch(() => setStatus('Tare failed'));
   });
 
   // per-scale tare buttons
   if (tare1Btn) tare1Btn.addEventListener('click', () => {
-    if (ws && ws.readyState === WebSocket.OPEN) { ws.send('tare:1'); setStatus('Tare 1 sent'); return; }
-    fetch('/tare?scale=1', { method: 'POST' }).then(r => r.json()).then(j => setStatus('Tare OK')).catch(() => setStatus('Tare failed'));
+    sendTareCommand(1);
   });
   if (tare2Btn) tare2Btn.addEventListener('click', () => {
-    if (ws && ws.readyState === WebSocket.OPEN) { ws.send('tare:2'); setStatus('Tare 2 sent'); return; }
-    fetch('/tare?scale=2', { method: 'POST' }).then(r => r.json()).then(j => setStatus('Tare OK')).catch(() => setStatus('Tare failed'));
-  });
+    sendTareCommand(2);
 
   // calibration
   if (calibrateBtn) calibrateBtn.addEventListener('click', () => {
