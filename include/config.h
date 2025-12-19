@@ -34,7 +34,7 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 
 // ESP-NOW Configuration
 // Set to 1 for parent node (receives data), 0 for child node (sends data)
-#define ESPNOW_IS_PARENT 0
+#define ESPNOW_IS_PARENT 1
 
 #if ESPNOW_IS_PARENT
   #define DEVICE_ID 1  // Parent node ID
@@ -55,7 +55,7 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 // Child nodes MAC addresses (for parent to add as peers)
 // Update these with your child device MAC addresses
 #define CHILD_NODE_INTERVAL 1000  // ms between scale readings on child
-#define ESPNOW_CHANNEL 1
+#define ESPNOW_CHANNEL 11
 
 // Board MAC address
 // Parent: a0:dd:6c:02:fb:a4
