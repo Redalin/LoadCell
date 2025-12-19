@@ -1,30 +1,121 @@
 (() => {
-  const weightEl1 = document.getElementById('weight1');
-  const weightEl2 = document.getElementById('weight2');
   const statusEl = document.getElementById('status');
-  const tare1Btn = document.getElementById('tare1Btn');
-  const tare2Btn = document.getElementById('tare2Btn');
+  // local scale elements will be created dynamically and assigned to these vars
+  let weightEl1, weightEl2, tare1Btn, tare2Btn, color1El, color2El, box1, box2, canvas1, canvas2, ctx1, ctx2, title1, title2, name1, name2, calReading1, calReading2;
   const calibrateBtn = document.getElementById('calibrateBtn');
   const calScale = document.getElementById('calScale');
   const calResult = document.getElementById('calResult');
-  const calReading1 = document.getElementById('calReading1');
-  const calReading2 = document.getElementById('calReading2');
   const tareAllBtn = document.getElementById('tareAllBtn');
   const clearBtn = document.getElementById('clearBtn');
-  const canvas1 = document.getElementById('weightGraph1');
-  const canvas2 = document.getElementById('weightGraph2');
 
-  const ctx1 = canvas1.getContext('2d');
-  const ctx2 = canvas2.getContext('2d');
+  // The UI will only display graphs for nodes that send data via ESP-NOW.
+  // Local scale boxes (previously shown) have been removed per user request.
+
+  // Dynamic child graphs: id -> { container, canvas, ctx, data[], lastSeen, name, color }
+  const dynamicContainer = document.getElementById('dynamicGraphs');
+  const childGraphs = new Map();
+  const MAX_CHILD_GRAPHS = 4;
+  const CHILD_TIMEOUT_MS = 5 * 60 * 1000; // remove after 5 minutes of no data
+
+  // Load persisted child names/colors from localStorage
+  const persistedChildNames = JSON.parse(localStorage.getItem('childNames') || '{}');
+  const persistedChildColors = JSON.parse(localStorage.getItem('childColors') || '{}');
+
+  function persistChildSettings() {
+    const names = {};
+    const colors = {};
+    childGraphs.forEach((g, id) => { names[id] = g.name || ''; colors[id] = g.color || ''; });
+    localStorage.setItem('childNames', JSON.stringify(Object.assign({}, persistedChildNames, names)));
+    localStorage.setItem('childColors', JSON.stringify(Object.assign({}, persistedChildColors, colors)));
+  }
+
+  function createChildGraph(id, firstValue) {
+    // If already exists, return it
+    if (childGraphs.has(id)) return childGraphs.get(id);
+
+    // enforce max
+    if (childGraphs.size >= MAX_CHILD_GRAPHS) {
+      // remove least recently seen to make space
+      let oldestId = null; let oldestTime = Infinity;
+      childGraphs.forEach((g, k) => { if (g.lastSeen < oldestTime) { oldestId = k; oldestTime = g.lastSeen; } });
+      if (oldestId !== null) removeChildGraph(oldestId);
+    }
+
+    const card = document.createElement('div'); card.className = 'dynamicGraph';
+    const header = document.createElement('div'); header.className = 'dgHeader';
+    const titleRow = document.createElement('div'); titleRow.className = 'dgTitleRow';
+    const title = document.createElement('div'); title.textContent = 'Node ' + id; title.style.fontWeight = '600';
+    const nameInput = document.createElement('input'); nameInput.className = 'dgNameInput';
+    nameInput.placeholder = 'Custom name...';
+    nameInput.value = persistedChildNames[id] || ('Node ' + id);
+    const colorInput = document.createElement('input'); colorInput.type = 'color'; colorInput.className = 'dgColor';
+    colorInput.value = persistedChildColors[id] || '#0077cc';
+    titleRow.appendChild(title); titleRow.appendChild(nameInput);
+    header.appendChild(titleRow);
+    const controls = document.createElement('div');
+    const removeBtn = document.createElement('button'); removeBtn.className = 'dgRemove'; removeBtn.textContent = 'Remove';
+    controls.appendChild(colorInput); controls.appendChild(removeBtn);
+    header.appendChild(controls);
+    card.appendChild(header);
+    const canvas = document.createElement('canvas'); canvas.className = 'graphCanvas'; canvas.width = 700; canvas.height = 180;
+    card.appendChild(canvas);
+    dynamicContainer.prepend(card);
+
+    const g = { container: card, canvas, ctx: canvas.getContext('2d'), data: [], lastSeen: Date.now(), name: nameInput.value || ('Node ' + id), color: colorInput.value };
+    // initial value
+    if (firstValue !== undefined && !isNaN(firstValue)) g.data.push({ t: Date.now(), v: Number(firstValue) });
+
+    // wire inputs
+    nameInput.addEventListener('change', () => { g.name = nameInput.value || ('Node ' + id); persistChildSettings(); });
+    colorInput.addEventListener('input', () => { g.color = colorInput.value; persistChildSettings(); drawAll(); });
+    removeBtn.addEventListener('click', () => removeChildGraph(id));
+
+    childGraphs.set(String(id), g);
+    persistChildSettings();
+    return g;
+  }
+
+  function removeChildGraph(id) {
+    const key = String(id);
+    const g = childGraphs.get(key);
+    if (!g) return;
+    try { g.container.remove(); } catch (e) {}
+    childGraphs.delete(key);
+    persistChildSettings();
+  }
+
+  function processChildren(obj) {
+    if (!obj || !obj.children) return;
+    const now = Date.now();
+    Object.keys(obj.children).forEach(k => {
+      const val = obj.children[k];
+      const g = createChildGraph(k, val);
+      // update data
+      if (val === null || val === undefined || isNaN(val)) {
+        g.data.push({ t: now, v: NaN });
+      } else {
+        g.data.push({ t: now, v: Number(val) });
+        g.lastSeen = now;
+      }
+      // trim to window
+      const cutoff = now - WINDOW_MS;
+      while (g.data.length && g.data[0].t < cutoff) g.data.shift();
+    });
+  }
+
+  // Periodically remove stale child graphs
+  setInterval(() => {
+    const now = Date.now();
+    const toRemove = [];
+    childGraphs.forEach((g, id) => { if (now - g.lastSeen > CHILD_TIMEOUT_MS) toRemove.push(id); });
+    toRemove.forEach(id => removeChildGraph(id));
+  }, 30 * 1000);
+
 
   // Spec table elements and input (use robust selector to get the inner input)
   const specInputEl = document.querySelector('#specInput input') || document.getElementById('specInput');
   const loadSpecBtn = document.getElementById('loadSpecBtn');
-  const specAvg1El = document.getElementById('specAvg1');
-  const specAvg2El = document.getElementById('specAvg2');
-  const specThs = document.querySelectorAll('#SpecTable th');
-  const specTh1 = specThs && specThs[1];
-  const specTh2 = specThs && specThs[2];
+  const specTable = document.getElementById('SpecTable');
 
   let MIN_SPEC = (specInputEl && parseFloat(specInputEl.value)) || (specInputEl && parseFloat(specInputEl.placeholder)) || 550;
   if (loadSpecBtn && specInputEl) loadSpecBtn.addEventListener('click', () => {
@@ -44,12 +135,6 @@
     });
   }
 
-  const data1 = [];
-  const data2 = [];
-  const color1El = document.getElementById('color1');
-  const color2El = document.getElementById('color2');
-  const box1 = document.getElementById('scaleBox1');
-  const box2 = document.getElementById('scaleBox2');
   let WINDOW_MS = 5 * 60 * 1000;
   const selectorWrap = document.getElementById('windowSelectors');
 
@@ -67,14 +152,7 @@
     const url = protocol + loc.host + '/ws';
     ws = new WebSocket(url);
     ws.onopen = () => setStatus('WS connected');
-    // fetch persisted settings once websocket opens
-    fetch('/settings').then(r => r.json()).then(j => {
-      if (j.name1) { title1.textContent = j.name1; name1.value = j.name1; }
-      if (j.name2) { title2.textContent = j.name2; name2.value = j.name2; }
-      if (j.color1) { color1El.value = j.color1; color1El.setAttribute('value', j.color1); }
-      if (j.color2) { color2El.value = j.color2; color2El.setAttribute('value', j.color2); }
-      applyColors();
-    }).catch(()=>{});
+    // no local scales to initialize; dynamic graphs will appear as data arrives
     ws.onclose = () => { setStatus('WS disconnected — retrying'); setTimeout(connect, 1500); };
     ws.onmessage = (ev) => {
       try {
@@ -111,10 +189,13 @@
           weightEl2.textContent = Number(w2).toFixed(2) + ' g';
           data2.push({ t: now, v: Number(w2) });
         }
-        // trim
-        const cutoff = now - WINDOW_MS;
-        while (data1.length && data1[0].t < cutoff) data1.shift();
-        while (data2.length && data2[0].t < cutoff) data2.shift();
+        // handle dynamic child nodes (parent mode)
+        try { processChildren(obj); } catch (e) { /* ignore */ }
+        // trim child graphs and draw
+        childGraphs.forEach((g) => {
+          const cutoff = now - WINDOW_MS;
+          while (g.data.length && g.data[0].t < cutoff) g.data.shift();
+        });
         drawAll();
       } catch (e) { console.error('Invalid ws message', e, ev.data); }
     };
@@ -172,26 +253,14 @@
 
   // color handling
   function applyColors() {
-    const c1 = (color1El && color1El.value) ? color1El.value : '#0077cc';
-    const c2 = (color2El && color2El.value) ? color2El.value : '#cc5500';
-    if (box1) box1.style.setProperty('--accent', c1);
-    if (box2) box2.style.setProperty('--accent', c2);
-    // update spec table header colors to match graphs
-    updateSpecHeaderColors(c1, c2);
-    updateSpecHeaderText();
+    // Colors for child graphs are managed per-graph; just redraw the table/graphs
     drawAll();
   }
   if (color1El) color1El.addEventListener('input', applyColors);
   if (color2El) color2El.addEventListener('input', applyColors);
   applyColors();
 
-  // edit UI
-  const edit1 = document.getElementById('edit1');
-  const edit2 = document.getElementById('edit2');
-  const name1 = document.getElementById('scaleName1');
-  const name2 = document.getElementById('scaleName2');
-  const title1 = document.querySelector('#scaleBox1 .scaleTitle');
-  const title2 = document.querySelector('#scaleBox2 .scaleTitle');
+  // edit UI (no local scale edit controls since local UI removed)
 
   function beginEdit(box, which) {
     box.classList.add('editing');
@@ -256,7 +325,7 @@
     cancel.addEventListener('click', () => endEdit(box, false));
     return ctr;
   }
-  createEditControls(box1); createEditControls(box2);
+  // edit controls removed for local scales (no local boxes)
 
   clearBtn.addEventListener('click', () => { data1.length = 0; data2.length = 0; drawAll(); setStatus('Data cleared'); });
 
@@ -317,11 +386,15 @@
     ctx.fillText(min.toFixed(2) + ' g', pad + 4, canvas.clientHeight - pad - 2);
   }
 
-  function drawAll() { 
-    const c1 = (color1El && color1El.value) ? color1El.value : '#0077cc';
-    const c2 = (color2El && color2El.value) ? color2El.value : '#cc5500';
-    drawGraph(canvas1, ctx1, data1, c1); 
-    drawGraph(canvas2, ctx2, data2, c2); 
+  function drawAll() {
+    // draw dynamic child graphs only
+    childGraphs.forEach((g, id) => {
+      drawGraph(g.canvas, g.ctx, g.data, g.color || '#0077cc');
+      try {
+        const titleEl = g.container.querySelector('.dgTitleRow div');
+        if (titleEl) titleEl.textContent = (g.name || ('Node ' + id));
+      } catch (e) {}
+    });
     updateSpecTable();
   }
 
@@ -336,22 +409,48 @@
     return lum > 0.6 ? '#000' : '#fff';
   }
 
-  function updateSpecHeaderColors(c1, c2) {
-    if (specTh1) {
-      specTh1.style.background = c1 || '';
-      specTh1.style.color = textColorForBg(c1);
-    }
-    if (specTh2) {
-      specTh2.style.background = c2 || '';
-      specTh2.style.color = textColorForBg(c2);
-    }
-  }
+  // build/update the spec table dynamically based on active child graphs
+  function updateSpecTable() {
+    if (!specTable) return;
+    // header row: first cell label, then one column per active child (order by lastSeen desc)
+    const children = Array.from(childGraphs.entries()).sort((a,b) => b[1].lastSeen - a[1].lastSeen);
+    // create table header
+    const thead = document.createElement('thead');
+    const hrow = document.createElement('tr');
+    const thLabel = document.createElement('th'); thLabel.textContent = '5 Sec Avg'; hrow.appendChild(thLabel);
+    children.forEach(([id, g]) => {
+      const th = document.createElement('th');
+      th.textContent = g.name || ('Node ' + id);
+      th.style.background = g.color || '';
+      th.style.color = textColorForBg(g.color || '#fff');
+      hrow.appendChild(th);
+    });
+    thead.appendChild(hrow);
 
-  function updateSpecHeaderText() {
-    try {
-      if (specTh1 && title1) specTh1.textContent = title1.textContent || (name1 && name1.value) || specTh1.textContent;
-      if (specTh2 && title2) specTh2.textContent = title2.textContent || (name2 && name2.value) || specTh2.textContent;
-    } catch (e) { /* ignore */ }
+    // second row: averages
+    const tbody = document.createElement('tbody');
+    const avgRow = document.createElement('tr');
+    const tdLabel = document.createElement('td'); tdLabel.textContent = '';
+    avgRow.appendChild(tdLabel);
+    const now = Date.now(); const cutoff = now - 5000;
+    children.forEach(([id, g]) => {
+      const visible = g.data.filter(d => d.t >= cutoff && !isNaN(d.v));
+      const td = document.createElement('td');
+      if (!visible.length) {
+        td.textContent = '-- g';
+      } else {
+        const sum = visible.reduce((s,p) => s + p.v, 0);
+        const avg = sum / visible.length;
+        td.textContent = avg.toFixed(2) + ' g';
+      }
+      avgRow.appendChild(td);
+    });
+    tbody.appendChild(avgRow);
+
+    // replace table contents
+    specTable.innerHTML = '';
+    specTable.appendChild(thead);
+    specTable.appendChild(tbody);
   }
 
   // compute min/max for the last 5 seconds and update SpecTable; color cells red if below MIN_SPEC, green if over
@@ -359,40 +458,9 @@
     const lastMs = 5000;
     const now = Date.now();
     const cutoff = now - lastMs;
-    function compute(data) {
-      const visible = data.filter(d => d.t >= cutoff && !isNaN(d.v));
-      if (!visible.length) return null;
-      let min = visible[0].v, max = visible[0].v, sum = 0;
-      for (const p of visible) { if (p.v < min) min = p.v; if (p.v > max) max = p.v; sum += p.v; }
-      const avg = sum / visible.length;
-      return { min, max, avg };
-    }
-    const r1 = compute(data1);
-    const r2 = compute(data2);
-    function apply(avgEl, r) {
-      if (!avgEl) return;
-      if (!r) {
-        avgEl.textContent = '-- g';
-        avgEl.style.background = '';
-        avgEl.title = '';
-        return;
-      }
-      avgEl.textContent = r.avg.toFixed(2) + ' g';
-      avgEl.title = `5s avg: ${r.avg.toFixed(2)} g — min: ${r.min.toFixed(2)} g, max: ${r.max.toFixed(2)} g`;
-      const avg = r.avg;
-      if (avg >= MIN_SPEC) {
-        avgEl.style.background = '#c8e6c9';
-      } else {
-        const deficit = MIN_SPEC - avg;
-        if (deficit <= 10) {
-          avgEl.style.background = '#ffe0b2';
-        } else {
-          avgEl.style.background = '#ffcdd2';
-        }
-      }
-    }
-    apply(specAvg1El, r1);
-    apply(specAvg2El, r2);
+    // No local scales: show placeholders for spec averages
+    if (specAvg1El) { specAvg1El.textContent = '-- g'; specAvg1El.style.background = ''; specAvg1El.title = ''; }
+    if (specAvg2El) { specAvg2El.textContent = '-- g'; specAvg2El.style.background = ''; specAvg2El.title = ''; }
   }
 
   setInterval(drawAll, 1000);

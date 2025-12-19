@@ -170,6 +170,26 @@ canvas { background: #fff; border-radius:6px; }
     margin: 12px;
 }
 
+/* Dynamic child graphs container */
+.dynamicGraphs {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+.dynamicGraph {
+    background: #f7f7f7;
+    border-radius: 8px;
+    padding: 8px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.04);
+}
+.dynamicGraph .dgHeader { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+.dynamicGraph .dgTitleRow { display:flex; align-items:center; gap:8px; }
+.dgNameInput { padding:6px 8px; border-radius:6px; border:1px solid #ccc; }
+.dgColor { width:34px; height:28px; border-radius:6px; border:1px solid #ddd; }
+.dgRemove { background:#e04b4b; color:#fff; border:none; padding:6px 8px; border-radius:6px; cursor:pointer; }
+
+
 #windowSelectors {
     margin-bottom: 8px;
     display: flex;

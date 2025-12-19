@@ -23,6 +23,9 @@ void espnowInit() {
     WiFi.channel(ESPNOW_CHANNEL);
     esp_wifi_set_channel(ESPNOW_CHANNEL, WIFI_SECOND_CHAN_NONE);
   }
+
+  // stop wifi from sleeping
+  esp_wifi_set_ps(WIFI_PS_NONE);
   
   // Initialize ESP-NOW
   if (esp_now_init() != ESP_OK) {
