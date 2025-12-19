@@ -42,6 +42,8 @@ void initWifi()
     // while (true);
     // We should not be here, no need to go further, hang in there, will auto launch the Soft WDT reset
   }
+  // stop wifi from sleeping
+  WiFi.setSleep(false);
 }
 
 int scanForWifi() {

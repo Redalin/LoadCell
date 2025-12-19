@@ -70,13 +70,13 @@ void loop()
     lastPrint = millis();
     float w;
     if (ESPNOW_IS_PARENT) {
-      w = scaleGetDummyUnits();  // Parent shows dummy for demo
+      // w = scaleGetDummyUnits();  // Parent shows dummy for demo
     } else {
-      w = scaleGetUnits1();  // Child shows its own scale
+      w = scaleGetUnits();  // Child shows its own scale
+      mainMessage = String(w);
+      Serial.println(mainMessage + "g");
+      displayWeight(mainMessage); // print weight to OLED
     }
-    mainMessage = String(w);
-    Serial.println(mainMessage + "g");
-    displayWeight(mainMessage);
   }
   delay(200);
 }

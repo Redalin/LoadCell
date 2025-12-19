@@ -55,7 +55,7 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 // Child nodes MAC addresses (for parent to add as peers)
 // Update these with your child device MAC addresses
 #define CHILD_NODE_INTERVAL 1000  // ms between scale readings on child
-#define ESPNOW_CHANNEL 11
+#define ESPNOW_CHANNEL 1
 
 // Board MAC address
 // Parent: a0:dd:6c:02:fb:a4
