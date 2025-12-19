@@ -42,6 +42,11 @@ void espnowSendTare(uint8_t nodeId, uint8_t whichScale);
 // Returns NaN if no data available or node not found
 float espnowGetChildWeight(uint8_t childId);
 
+// Get a snapshot of all child weights (parent only)
+// Returns a map of childId -> weight for all nodes with recent data
+// Callback will be called with each node ID and weight; useful for iteration
+void espnowForEachChildWeight(void (*callback)(uint8_t childId, float weight));
+
 // Check if there's a pending tare command for this node (child only)
 // Returns: scale number (1 or 2) if tare needed, 0 if none
 uint8_t espnowGetPendingTareCommand();
