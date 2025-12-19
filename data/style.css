@@ -187,6 +187,7 @@ canvas { background: #fff; border-radius:6px; }
 .dynamicGraph .dgTitleRow { display:flex; align-items:center; gap:8px; }
 .dgNameInput { padding:6px 8px; border-radius:6px; border:1px solid #ccc; }
 .dgColor { width:34px; height:28px; border-radius:6px; border:1px solid #ddd; }
+.dgTare { background:#0aa1e7; color:#fff; border:none; padding:6px 8px; border-radius:6px; cursor:pointer; }
 .dgRemove { background:#e04b4b; color:#fff; border:none; padding:6px 8px; border-radius:6px; cursor:pointer; }
 
 

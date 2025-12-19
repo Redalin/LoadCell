@@ -34,11 +34,10 @@ void initScale() {
     Serial.println("Scale initialized.");
 }
 
-// Calibrate scale (child nodes only have one scale)
-float scaleCalibrate(int which) {
+// Calibrate scale
+float scaleCalibrate() {
     float result = NAN;
     if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
-    // Child nodes only have one scale, so ignore 'which' parameter
     if (scale.wait_ready_timeout(1000)) {
         scale.set_scale(1.0); // remove existing calibration
         Serial.println("Tare... remove any weights from scale.");
@@ -92,24 +91,23 @@ void scaleTareAll() {
 }
 
 // Async calibrate task wrapper
-struct CalArgs { int which; uint32_t clientId; };
+struct CalArgs { uint32_t clientId; };
 
 static void calibrateTask(void *pvParameters) {
     CalArgs *args = (CalArgs*)pvParameters;
-    int which = args->which;
     uint32_t clientId = args->clientId;
     // call synchronous calibrate (it will use delays) from this task
-    float result = scaleCalibrate(which);
+    float result = scaleCalibrate();
     // report back
-    sendCalibrationResult(which, result, clientId);
+    sendCalibrationResult(result, clientId);
     free(args);
     vTaskDelete(NULL);
 }
 
 // start async calibration (non-blocking)
-void scaleCalibrateAsync(int which, uint32_t clientId) {
+void scaleCalibrateAsync(uint32_t clientId) {
     CalArgs *args = (CalArgs*)malloc(sizeof(CalArgs));
     if (!args) return;
-    args->which = which; args->clientId = clientId;
+    args->clientId = clientId;
     xTaskCreatePinnedToCore(calibrateTask, "calib", 4096, args, tskIDLE_PRIORITY+1, NULL, 0);
 }

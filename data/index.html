@@ -10,58 +10,60 @@
 </head>
 
 <body>
-    <main >
+    <main>
         <h1>Scale Monitor</h1>
-        
-            <div id="specInput">
-                <label for="SpecTable"><strong>Min Weight:</strong></label>
-                <input type="text" id="specInput" placeholder="550" class="smallInput" />
-                grams
-                <br>
-                <button id="loadSpecBtn" class="btn3d" >Set Spec</button>
-            </div>
-            <div>
-                <table id="SpecTable" class="SpecTable">
-                    <tr>
-                        <th>5 Sec Avg</th>
-                        <th>Scale 1</th>
-                        <th>Scale 2</th>
-                    </tr>
-                    <tr>
-                        <td></td>
-                        <td id="specAvg1">-- g</td>
-                        <td id="specAvg2">-- g</td>
-                    </tr>
-                </table>
 
-            </div>
-        <!-- scale boxes (local scales) will be created dynamically here -->
-        <div id="scaleBoxes" class="flexWrap"></div>
+        <div id="specInput">
+            <label for="SpecTable"><strong>Min Weight:</strong></label>
+            <input type="text" id="specInput" placeholder="550" class="smallInput" />
+            grams
+            <br>
+            <button id="loadSpecBtn" class="btn3d">Set Spec</button>
+        </div>
+        <div>
+            <table id="SpecTable" class="SpecTable">
+                <tr>
+                    <th>5 Sec Avg</th>
+                    <th>Scale 1</th>
+                    <th>Scale 2</th>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td id="specAvg1">-- g</td>
+                    <td id="specAvg2">-- g</td>
+                </tr>
+            </table>
+
+        </div>
+        <!-- Dynamic graphs for child nodes will be inserted here -->
+        <div id="dynamicGraphs" class="dynamicGraphs">
+        </div>
         <div id="graphWrap">
-            <label for="calScale">Select Time Window</label>
+            <label for="timeSpan">Select Time Window</label>
             <div id="windowSelectors">
                 <button class="winBtn" data-ms="5000">5s</button>
                 <button class="winBtn" data-ms="20000">20s</button>
                 <button class="winBtn active" data-ms="300000">5min</button>
             </div>
-            <!-- Dynamic graphs for child nodes will be inserted here -->
-            <div id="dynamicGraphs" class="dynamicGraphs"></div>
         </div>
+
+ 
         <div class="actionsRow">
-            <button id="tareAllBtn" class="btn3d" >Tare All</button>
-            <button id="clearBtn" class="btn3d" >Clear data</button>
-            <button id="resetBtn" class="btn3d" >Reset Defaults</button>
+            <button id="tareAllBtn" class="btn3d">Tare All</button>
+            <button id="resetBtn" class="btn3d">Reset Defaults</button>
         </div>
 
         <div class="calRow">
-            <button id="calibrateBtn" class="btn3d" >Calibrate</button>
+            <button id="calibrateBtn" class="btn3d">Calibrate</button>
             <select id="calScale" class="dropdown">
                 <option value="1">Scale 1</option>
                 <option value="2">Scale 2</option>
+                <option value="3">Scale 3</option>
+                <option value="4">Scale 4</option>
             </select>
-            <div id="calResult" ></div>
+            <div id="calResult"></div>
         </div>
-        <span id="status" ></span>
+        <span id="status"></span>
     </main>
     <script src="script.js"></script>
 </body>
