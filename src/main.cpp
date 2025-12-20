@@ -58,8 +58,12 @@ void loop()
     espnowSendAveragedWeightIfReady();  // Send average every 500ms if buffer has data
     
     // Check for pending tare commands
-    uint8_t tareScale = espnowGetPendingTareCommand();
-    // ToDo - add Tare command back in
+    uint8_t tareCmd = espnowGetPendingTareCommand();
+    if (tareCmd != 0) {
+      Serial.println("Performing pending tare command");
+      scaleTare();
+      // optional: send ack back (not implemented)
+    }
   }
 
   // optional: print weight to Serial and display every 2 seconds
