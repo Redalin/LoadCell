@@ -53,6 +53,8 @@ void espnowLoop();
 // Should be called frequently to collect samples over window
 void espnowBufferWeight(float weight);
 
+void espnowSendWeight(float weight);
+
 // Get the average weight and send if interval has passed (child only)
 // Should be called regularly from main loop
 void espnowSendAveragedWeightIfReady();

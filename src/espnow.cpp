@@ -259,6 +259,41 @@ void espnowSendAveragedWeightIfReady() {
   }
 }
 
+void espnowSendWeight(float weight) {
+  if (ESPNOW_IS_PARENT) {
+    return;  // Parent doesn't send weight data
+  }
+  
+  uint8_t parentMac[] = PARENT_MAC_ADDR;
+  ESPNowData data;
+  data.type = MSG_TYPE_WEIGHT;
+  data.id = DEVICE_ID;
+  data.value = weight;
+  data.timestamp = millis();
+  // include hostname
+  memset(data.name, 0, sizeof(data.name));
+  const char *hn = HOSTNAME;
+  if (hn) strncpy(data.name, hn, sizeof(data.name) - 1);
+  
+  // Serial.println("Sending averaged weight: ");
+  Serial.print("Sending: Node ID ");
+  Serial.print(DEVICE_ID);
+  Serial.print(" - ");
+  Serial.print(data.name);
+  Serial.print(": ");
+  Serial.print(weight); 
+  Serial.println(" g");
+
+  esp_err_t result = esp_now_send(parentMac, (uint8_t *)&data, sizeof(data));
+  if (result != ESP_OK) {
+    Serial.print("Error sending weight data: ");
+    Serial.println(result);
+  }
+}
+
+
+
+
 const char* espnowGetChildName(uint8_t childId) {
   auto it = childNames.find(childId);
   if (it != childNames.end()) return it->second.c_str();
