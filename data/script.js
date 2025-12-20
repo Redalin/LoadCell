@@ -165,6 +165,8 @@
 
   function processChildren(obj) {
     if (!obj || !obj.children) return;
+    // Debug: show which child keys arrived
+    try { console.log('processChildren keys:', Object.keys(obj.children)); } catch (e) {}
     const now = Date.now();
     // Support two formats: array of {id,weight,name} (server) or object map id->{weight,name}
     if (Array.isArray(obj.children)) {
@@ -335,9 +337,10 @@
 
   if (clearBtn) clearBtn.addEventListener('click', () => { if (window.data1) data1.length = 0; if (window.data2) data2.length = 0; drawAll(); setStatus('Data cleared'); });
 
+  // Reset persisted child display settings to defaults
   const resetBtn = document.getElementById('resetBtn');
   if (resetBtn) resetBtn.addEventListener('click', () => {
-    if (!confirm('Reset scale names and colors to defaults?')) return;
+    if (!confirm('Reset child names and colors to defaults?')) return;
     fetch('/settings/reset', { method: 'POST' })
       .then(r => r.json())
       .then(j => {
@@ -472,16 +475,8 @@
     specTable.appendChild(tbody);
   }
 
-  // compute min/max for the last 5 seconds and update SpecTable; color cells red if below MIN_SPEC, green if over
-  function updateSpecTable() {
-    const lastMs = 5000;
-    const now = Date.now();
-    const cutoff = now - lastMs;
-    // No local scales: show placeholders for spec averages
-    if (specAvg1El) { specAvg1El.textContent = '-- g'; specAvg1El.style.background = ''; specAvg1El.title = ''; }
-    if (specAvg2El) { specAvg2El.textContent = '-- g'; specAvg2El.style.background = ''; specAvg2El.title = ''; }
-  }
+  // (updateSpecTable is defined earlier to build the table from active child graphs)
 
-  setInterval(drawAll, 1000);
+  setInterval(drawAll, 2000);  // Reduced from 1000ms to lower client-side redraw load
 
 })();
