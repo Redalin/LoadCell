@@ -189,9 +189,8 @@ canvas { background: #fff; border-radius:6px; }
 .dgColor { width:34px; height:28px; border-radius:6px; border:1px solid #ddd; }
 .dgTare { background:#0aa1e7; color:#fff; border:none; padding:6px 8px; border-radius:6px; cursor:pointer; }
 .dgEdit { color:#fff; border:none; padding:6px 8px; border-radius:6px; cursor:pointer; }
-.dgRemove, .dgCancel { background:#8a2626; color:#fff; border:none; padding:6px 8px; border-radius:6px; cursor:pointer; }
-.dgSave { background:#107518; color:#fff; border:none; padding:6px 8px; border-radius:6px; cursor:pointer; }
-/* .dgCancel { background:#e04b4b; color:#fff; border:none; padding:6px 8px; border-radius:6px; cursor:pointer; } */
+.dgRemove, .dgCancel { background:#c21010; color:#fff; border:none; padding:6px 8px; border-radius:6px; cursor:pointer; }
+.dgSave { background:#14911e; color:#fff; border:none; padding:6px 8px; border-radius:6px; cursor:pointer; }
 
 
 #windowSelectors {
