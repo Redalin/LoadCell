@@ -48,25 +48,26 @@
     const header = document.createElement('div'); header.className = 'dgHeader';
     const titleRow = document.createElement('div'); titleRow.className = 'dgTitleRow';
     const title = document.createElement('div'); title.textContent = serverName || ('Node ' + id); title.style.fontWeight = '600';
-    const weightEl = document.createElement('div'); weightEl.className = 'dgWeight'; weightEl.style.marginLeft = '8px'; weightEl.textContent = '-- g';
     // name input (hidden until editing)
     const nameInput = document.createElement('input'); nameInput.className = 'dgNameInput';
     nameInput.placeholder = 'Custom name...';
     nameInput.style.display = 'none';
     nameInput.value = persistedChildNames[key] || serverName || ('Node ' + id);
+    const weightEl = document.createElement('div'); weightEl.className = 'dgWeight'; weightEl.style.marginLeft = '8px'; weightEl.textContent = '-- g';
+    const tareBtn = document.createElement('button'); tareBtn.className = 'dgTare'; tareBtn.textContent = 'Tare';
+
     // color picker (hidden until editing)
     const colorInput = document.createElement('input'); colorInput.type = 'color'; colorInput.className = 'dgColor';
     colorInput.style.display = 'none';
     colorInput.value = persistedChildColors[key] || '#525c63ff';
-    titleRow.appendChild(title); titleRow.appendChild(weightEl); titleRow.appendChild(nameInput);
+    titleRow.appendChild(title); titleRow.appendChild(nameInput); titleRow.appendChild(weightEl); titleRow.appendChild(tareBtn);
     header.appendChild(titleRow);
     const controls = document.createElement('div');
-    const tareBtn = document.createElement('button'); tareBtn.className = 'dgTare'; tareBtn.textContent = 'Tare';
-    const editBtn = document.createElement('button'); editBtn.className = 'dgEdit'; editBtn.textContent = 'Edit';
-    const saveBtn = document.createElement('button'); saveBtn.className = 'dgSave'; saveBtn.textContent = 'Save'; saveBtn.style.display = 'none';
-    const cancelBtn = document.createElement('button'); cancelBtn.className = 'dgCancel'; cancelBtn.textContent = 'Cancel'; cancelBtn.style.display = 'none';
-    const removeBtn = document.createElement('button'); removeBtn.className = 'dgRemove'; removeBtn.textContent = 'Remove';
-    controls.appendChild(colorInput); controls.appendChild(tareBtn); controls.appendChild(editBtn); controls.appendChild(saveBtn); controls.appendChild(cancelBtn); controls.appendChild(removeBtn);
+    const editBtn = document.createElement('button'); editBtn.className = 'dgEdit'; editBtn.innerHTML = '✏️'; editBtn.title = 'Edit';
+    const saveBtn = document.createElement('button'); saveBtn.className = 'dgSave'; saveBtn.innerHTML = '✔️'; saveBtn.style.display = 'none'; saveBtn.title = 'Save'; saveBtn.style.color = 'green';
+    const cancelBtn = document.createElement('button'); cancelBtn.className = 'dgCancel'; cancelBtn.innerHTML = '✕'; cancelBtn.style.display = 'none'; cancelBtn.title = 'Cancel'; cancelBtn.style.color = 'red';
+    const removeBtn = document.createElement('button'); removeBtn.className = 'dgRemove'; removeBtn.innerHTML = '✕'; removeBtn.title = 'Remove';
+    controls.appendChild(colorInput); controls.appendChild(editBtn); controls.appendChild(saveBtn); controls.appendChild(cancelBtn); controls.appendChild(removeBtn);
     header.appendChild(controls);
     card.appendChild(header);
     const canvas = document.createElement('canvas'); canvas.className = 'graphCanvas'; canvas.width = 700; canvas.height = 180;
@@ -90,6 +91,10 @@
       editBtn.style.display = 'none';
       saveBtn.style.display = '';
       cancelBtn.style.display = '';
+      // hide remove while editing
+      if (removeBtn) removeBtn.style.display = 'none';
+      // hide the static title and show the editable name input
+      try { if (title) title.style.display = 'none'; } catch (e) {}
       nameInput.style.display = '';
       colorInput.style.display = '';
       nameInput.focus();
@@ -98,9 +103,20 @@
       g.name = nameInput.value || ('Node ' + id);
       g.color = colorInput.value;
       title.textContent = g.name;
+      // apply background and readable text color to the card
+      try {
+        g.container.style.background = g.color || '';
+        const textCol = textColorForBg(g.color || '');
+        if (g.titleEl) g.titleEl.style.color = textCol;
+        if (g.weightEl) g.weightEl.style.color = textCol;
+      } catch (e) {}
       editBtn.style.display = '';
       saveBtn.style.display = 'none';
       cancelBtn.style.display = 'none';
+      // restore remove visibility
+      if (removeBtn) removeBtn.style.display = '';
+      // restore title visibility and hide name input
+      try { if (title) title.style.display = ''; } catch (e) {}
       nameInput.style.display = 'none';
       colorInput.style.display = 'none';
       persistChildSettings();
@@ -113,6 +129,10 @@
       editBtn.style.display = '';
       saveBtn.style.display = 'none';
       cancelBtn.style.display = 'none';
+      // restore remove visibility
+      if (removeBtn) removeBtn.style.display = '';
+      // restore title visibility and hide name input
+      try { if (title) title.style.display = ''; } catch (e) {}
       nameInput.style.display = 'none';
       colorInput.style.display = 'none';
     });
@@ -122,6 +142,13 @@
     removeBtn.addEventListener('click', () => removeChildGraph(id));
 
     childGraphs.set(key, g);
+    // apply initial color to the container/title/weight elements
+    try {
+      g.container.style.background = g.color || '';
+      const textCol = textColorForBg(g.color || '');
+      if (g.titleEl) g.titleEl.style.color = textCol;
+      if (g.weightEl) g.weightEl.style.color = textCol;
+    } catch (e) {}
     persistChildSettings();
     console.log('Created child graph', key, serverName);
     return g;

@@ -104,8 +104,8 @@ static void notifyClients(){
   char buf[1024];
   size_t n = serializeJson(doc, buf, sizeof(buf));
   // log outgoing JSON for debugging (will appear on Serial)
-  Serial.print("WS OUT: ");
-  Serial.println(buf);
+  // Serial.print("WS OUT: ");
+  // Serial.println(buf);
   ws.textAll(buf, n);
 }
 
