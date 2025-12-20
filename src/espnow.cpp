@@ -1,15 +1,17 @@
 #include "espnow.h"
 #include <esp_wifi.h>
+#include <esp_err.h>
 #include "config.h"
 #include <map>
 
 // Map to store child node weights: childId -> weight
 static std::map<uint8_t, float> childWeights;
+static std::map<uint8_t, String> childNames;
 static uint8_t nodeId = 0;  // This device's ID (set on child nodes)
 static uint8_t pendingTareCommand = 0;  // Pending tare command (scale number, 0 = none)
 
 // Buffering for 500ms average
-static const uint32_t ESPNOW_SEND_INTERVAL = 1000;  // 500ms between sends
+static const uint32_t ESPNOW_SEND_INTERVAL = 2000;  // 500ms between sends
 static unsigned long lastSendTime = 0;
 static float weightBuffer[100];  // Buffer for weight samples (enough for ~50 samples at 10ms reading interval)
 static int bufferIndex = 0;
@@ -47,14 +49,22 @@ void espnowInit() {
     Serial.println("PARENT");
     // Parent node doesn't need to add itself as a peer
     // Child nodes will be added when they pair
+    // Add a broadcast peer so parent can send commands to all children
+    uint8_t broadcastMac[] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+    esp_now_peer_info_t peerInfo = {};
+    memcpy(peerInfo.peer_addr, broadcastMac, 6);
+    peerInfo.channel = ESPNOW_CHANNEL;
+    peerInfo.encrypt = false;
+    esp_err_t addres = esp_now_add_peer(&peerInfo);
+    if (addres != ESP_OK) {
+      Serial.print("Warning: failed to add broadcast peer: "); Serial.println(esp_err_to_name(addres));
+    } else {
+      Serial.println("Broadcast peer added");
+    }
   } else {
     Serial.println("CHILD");
-    // Generate a simple node ID based on MAC address
-    uint8_t mac[6];
-    WiFi.macAddress(mac);
-    nodeId = mac[5];  // Use last octet of MAC as node ID
     Serial.print("Node ID: ");
-    Serial.println(nodeId);
+    Serial.println(DEVICE_ID);
     Serial.print("Child Wifi Channel: ");
     Serial.println(ESPNOW_CHANNEL);
     
@@ -111,12 +121,18 @@ void espnowOnRecv(const uint8_t *mac_addr, const uint8_t *data, int len) {
       if (payload->type == MSG_TYPE_WEIGHT) {
         Serial.print("Received from node ");
         Serial.print(payload->id);
-        Serial.print(": ");
+        Serial.print(" (");
+        Serial.print(payload->name);
+        Serial.print("): ");
         Serial.print(payload->value);
         Serial.println(" g");
         
         // Store the weight data
         childWeights[payload->id] = payload->value;
+        // store hostname if present
+        if (payload->name[0] != '\0') {
+          childNames[payload->id] = String(payload->name);
+        }
       } else if (payload->type == MSG_TYPE_ACK) {
         Serial.print("Node ");
         Serial.print(payload->id);
@@ -125,51 +141,22 @@ void espnowOnRecv(const uint8_t *mac_addr, const uint8_t *data, int len) {
     } else {
       // Child receiving commands from parent
       if (payload->type == MSG_TYPE_TARE) {
-        Serial.print("Received tare command for scale ");
-        Serial.println((uint8_t)payload->value);
-        
-        // Store the pending tare command
-        pendingTareCommand = (uint8_t)payload->value;
+        Serial.print("Received tare command for node id ");
+        Serial.println((uint8_t)payload->id);
+        // Only accept if addressed to this node (or id==0 for broadcast)
+        if ((uint8_t)payload->id == DEVICE_ID || (uint8_t)payload->id == 0) {
+          // mark pending tare (use 1 to indicate tare request)
+          pendingTareCommand = 1;
+          Serial.println("Tare queued");
+        } else {
+          Serial.println("Tare ignored (not for this node)");
+        }
       }
     }
   }
 }
 
-void espnowSendWeight(float weight) {
-  if (ESPNOW_IS_PARENT) {
-    // Parent doesn't send weight data
-    return;
-  }
-  
-  // Child node sends weight to parent
-  uint8_t parentMac[] = PARENT_MAC_ADDR;
-  ESPNowData data;
-  data.type = MSG_TYPE_WEIGHT;
-  data.id = nodeId;
-  data.value = weight;
-  data.timestamp = millis();
-  
-  Serial.println("Sending weight: ");
-  Serial.print("Node ID ");
-  Serial.print(nodeId);
-  Serial.print(" - ");
-  Serial.print(weight); 
-  Serial.println(" g");
-  Serial.print("To parent MAC: ");
-  for (int i = 0; i < 6; i++) {
-    Serial.print(parentMac[i], HEX);
-    if (i < 5) Serial.print(":");
-  }
-  Serial.println();
-
-  esp_err_t result = esp_now_send(parentMac, (uint8_t *)&data, sizeof(data));
-  if (result != ESP_OK) {
-    Serial.print("Error sending weight data: ");
-    Serial.println(result);
-  }
-}
-
-void espnowSendTare(uint8_t nodeId, uint8_t whichScale) {
+void espnowSendTare(uint8_t nodeId) {
   if (!ESPNOW_IS_PARENT) {
     // Only parent sends commands
     return;
@@ -181,18 +168,17 @@ void espnowSendTare(uint8_t nodeId, uint8_t whichScale) {
   ESPNowData data;
   data.type = MSG_TYPE_TARE;
   data.id = nodeId;
-  data.value = whichScale;
+  data.value = 0; // default scale/index
   data.timestamp = millis();
   
   esp_err_t result = esp_now_send(broadcastMac, (uint8_t *)&data, sizeof(data));
   if (result != ESP_OK) {
     Serial.print("Error sending tare command: ");
-    Serial.println(result);
+    Serial.print(result);
+    Serial.print(" ("); Serial.print(esp_err_to_name(result)); Serial.println(")");
   } else {
     Serial.print("Sent tare command to node ");
     Serial.print(nodeId);
-    Serial.print(" for scale ");
-    Serial.println(whichScale);
   }
 }
 
@@ -239,7 +225,7 @@ void espnowSendAveragedWeightIfReady() {
   
   unsigned long currentTime = millis();
   
-  // Check if 500ms has elapsed since last send
+  // Check if interval has elapsed since last send
   if (currentTime - lastSendTime >= ESPNOW_SEND_INTERVAL && bufferIndex > 0) {
     lastSendTime = currentTime;
     
@@ -257,22 +243,22 @@ void espnowSendAveragedWeightIfReady() {
     uint8_t parentMac[] = PARENT_MAC_ADDR;
     ESPNowData data;
     data.type = MSG_TYPE_WEIGHT;
-    data.id = nodeId;
+    data.id = DEVICE_ID;
     data.value = average;
     data.timestamp = currentTime;
+    // include hostname
+    memset(data.name, 0, sizeof(data.name));
+    const char *hn = HOSTNAME;
+    if (hn) strncpy(data.name, hn, sizeof(data.name) - 1);
     
     // Serial.println("Sending averaged weight: ");
     Serial.print("Sending: Node ID ");
-    Serial.print(nodeId);
+    Serial.print(DEVICE_ID);
     Serial.print(" - ");
+    Serial.print(data.name);
+    Serial.print(": ");
     Serial.print(average); 
     Serial.println(" g");
-    // Serial.print("To parent MAC: ");
-    // for (int i = 0; i < 6; i++) {
-    //   Serial.print(parentMac[i], HEX);
-    //   if (i < 5) Serial.print(":");
-    // }
-    // Serial.println();
 
     esp_err_t result = esp_now_send(parentMac, (uint8_t *)&data, sizeof(data));
     if (result != ESP_OK) {
@@ -280,6 +266,47 @@ void espnowSendAveragedWeightIfReady() {
       Serial.println(result);
     }
   }
+}
+
+void espnowSendWeight(float weight) {
+  if (ESPNOW_IS_PARENT) {
+    return;  // Parent doesn't send weight data
+  }
+  
+  uint8_t parentMac[] = PARENT_MAC_ADDR;
+  ESPNowData data;
+  data.type = MSG_TYPE_WEIGHT;
+  data.id = DEVICE_ID;
+  data.value = weight;
+  data.timestamp = millis();
+  // include hostname
+  memset(data.name, 0, sizeof(data.name));
+  const char *hn = HOSTNAME;
+  if (hn) strncpy(data.name, hn, sizeof(data.name) - 1);
+  
+  // Serial.println("Sending averaged weight: ");
+  Serial.print("Sending: Node ID ");
+  Serial.print(DEVICE_ID);
+  Serial.print(" - ");
+  Serial.print(data.name);
+  Serial.print(": ");
+  Serial.print(weight); 
+  Serial.println(" g");
+
+  esp_err_t result = esp_now_send(parentMac, (uint8_t *)&data, sizeof(data));
+  if (result != ESP_OK) {
+    Serial.print("Error sending weight data: ");
+    Serial.println(result);
+  }
+}
+
+
+
+
+const char* espnowGetChildName(uint8_t childId) {
+  auto it = childNames.find(childId);
+  if (it != childNames.end()) return it->second.c_str();
+  return "";
 }
 
 void espnowPrintPeers() {

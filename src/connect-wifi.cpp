@@ -19,6 +19,9 @@ void initMDNS() {
     }
     Serial.println("mDNS responder started");
     displayText("mDNS responder started");
+    delay(1000);
+    // This is done last, re-print hostname and IP on screen
+    displayText("http:\\\\" + String(WiFi.getHostname()) + "\nIP: " + WiFi.localIP().toString());
 }
 
 void initWifi()

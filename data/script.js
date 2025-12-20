@@ -2,12 +2,12 @@
   const statusEl = document.getElementById('status');
   const calibrateBtn = document.getElementById('calibrateBtn');
   const calScale = document.getElementById('calScale');
+  const timeSpan = document.getElementById('timeSpan');
   const calResult = document.getElementById('calResult');
   const tareAllBtn = document.getElementById('tareAllBtn');
   const clearBtn = document.getElementById('clearBtn');
 
   // The UI will only display graphs for nodes that send data via ESP-NOW.
-  // Local scale boxes (previously shown) have been removed per user request.
 
   // Dynamic child graphs: id -> { container, canvas, ctx, data[], lastSeen, name, color }
   const dynamicContainer = document.getElementById('dynamicGraphs');
@@ -27,9 +27,14 @@
     localStorage.setItem('childColors', JSON.stringify(Object.assign({}, persistedChildColors, colors)));
   }
 
-  function createChildGraph(id, firstValue) {
+  const scaleBoxesContainer = document.getElementById('scaleBoxes');
+  const specAvg1El = document.getElementById('specAvg1');
+  const specAvg2El = document.getElementById('specAvg2');
+
+  function createChildGraph(id, firstValue, serverName) {
+    const key = String(id);
     // If already exists, return it
-    if (childGraphs.has(id)) return childGraphs.get(id);
+    if (childGraphs.has(key)) return childGraphs.get(key);
 
     // enforce max
     if (childGraphs.size >= MAX_CHILD_GRAPHS) {
@@ -42,36 +47,110 @@
     const card = document.createElement('div'); card.className = 'dynamicGraph';
     const header = document.createElement('div'); header.className = 'dgHeader';
     const titleRow = document.createElement('div'); titleRow.className = 'dgTitleRow';
-    const title = document.createElement('div'); title.textContent = 'Node ' + id; title.style.fontWeight = '600';
+    const title = document.createElement('div'); title.textContent = serverName || ('Node ' + id); title.style.fontWeight = '600';
+    // name input (hidden until editing)
     const nameInput = document.createElement('input'); nameInput.className = 'dgNameInput';
     nameInput.placeholder = 'Custom name...';
-    nameInput.value = persistedChildNames[id] || ('Node ' + id);
+    nameInput.style.display = 'none';
+    nameInput.value = persistedChildNames[key] || serverName || ('Node ' + id);
+    const weightEl = document.createElement('div'); weightEl.className = 'dgWeight'; weightEl.style.marginLeft = '8px'; weightEl.textContent = '-- g';
+    const tareBtn = document.createElement('button'); tareBtn.className = 'dgTare'; tareBtn.textContent = 'Tare';
+
+    // color picker (hidden until editing)
     const colorInput = document.createElement('input'); colorInput.type = 'color'; colorInput.className = 'dgColor';
-    colorInput.value = persistedChildColors[id] || '#0077cc';
-    titleRow.appendChild(title); titleRow.appendChild(nameInput);
+    colorInput.style.display = 'none';
+    colorInput.value = persistedChildColors[key] || '#525c63ff';
+    titleRow.appendChild(title); titleRow.appendChild(nameInput); titleRow.appendChild(weightEl); titleRow.appendChild(tareBtn);
     header.appendChild(titleRow);
     const controls = document.createElement('div');
-    const tareBtn = document.createElement('button'); tareBtn.className = 'dgTare'; tareBtn.textContent = 'Tare';
-    const removeBtn = document.createElement('button'); removeBtn.className = 'dgRemove'; removeBtn.textContent = 'Remove';
-    controls.appendChild(colorInput); controls.appendChild(tareBtn); controls.appendChild(removeBtn);
+    const editBtn = document.createElement('button'); editBtn.className = 'dgEdit'; editBtn.innerHTML = '✏️'; editBtn.title = 'Edit';
+    const saveBtn = document.createElement('button'); saveBtn.className = 'dgSave'; saveBtn.innerHTML = '✔️'; saveBtn.style.display = 'none'; saveBtn.title = 'Save'; saveBtn.style.color = 'green';
+    const cancelBtn = document.createElement('button'); cancelBtn.className = 'dgCancel'; cancelBtn.innerHTML = '✕'; cancelBtn.style.display = 'none'; cancelBtn.title = 'Cancel'; cancelBtn.style.color = 'red';
+    const removeBtn = document.createElement('button'); removeBtn.className = 'dgRemove'; removeBtn.innerHTML = '✕'; removeBtn.title = 'Remove';
+    controls.appendChild(colorInput); controls.appendChild(editBtn); controls.appendChild(saveBtn); controls.appendChild(cancelBtn); controls.appendChild(removeBtn);
     header.appendChild(controls);
     card.appendChild(header);
     const canvas = document.createElement('canvas'); canvas.className = 'graphCanvas'; canvas.width = 700; canvas.height = 180;
     card.appendChild(canvas);
-    dynamicContainer.prepend(card);
+    // resolve container at runtime (in case DOM changed); prefer dynamicGraphs
+    try {
+      const container = document.getElementById('dynamicGraphs') || document.getElementById('scaleBoxes') || document.body;
+      container.prepend(card);
+    } catch (err) {
+      console.error('Failed to insert dynamic graph card', err);
+      document.body.prepend(card);
+    }
 
-    const g = { container: card, canvas, ctx: canvas.getContext('2d'), data: [], lastSeen: Date.now(), name: nameInput.value || ('Node ' + id), color: colorInput.value };
+    const g = { container: card, canvas, ctx: canvas.getContext('2d'), data: [], lastSeen: Date.now(), name: nameInput.value || serverName || ('Node ' + id), color: colorInput.value, weightEl, titleEl: title, nameInput, colorInput, editBtn, saveBtn, cancelBtn };
     // initial value
     if (firstValue !== undefined && !isNaN(firstValue)) g.data.push({ t: Date.now(), v: Number(firstValue) });
 
     // wire inputs
-    nameInput.addEventListener('change', () => { g.name = nameInput.value || ('Node ' + id); persistChildSettings(); });
-    colorInput.addEventListener('input', () => { g.color = colorInput.value; persistChildSettings(); drawAll(); });
+    // edit flow
+    editBtn.addEventListener('click', () => {
+      editBtn.style.display = 'none';
+      saveBtn.style.display = '';
+      cancelBtn.style.display = '';
+      // hide remove while editing
+      if (removeBtn) removeBtn.style.display = 'none';
+      // hide the static title and show the editable name input
+      try { if (title) title.style.display = 'none'; } catch (e) {}
+      nameInput.style.display = '';
+      colorInput.style.display = '';
+      nameInput.focus();
+    });
+    saveBtn.addEventListener('click', () => {
+      g.name = nameInput.value || ('Node ' + id);
+      g.color = colorInput.value;
+      title.textContent = g.name;
+      // apply background and readable text color to the card
+      try {
+        g.container.style.background = g.color || '';
+        const textCol = textColorForBg(g.color || '');
+        if (g.titleEl) g.titleEl.style.color = textCol;
+        if (g.weightEl) g.weightEl.style.color = textCol;
+      } catch (e) {}
+      editBtn.style.display = '';
+      saveBtn.style.display = 'none';
+      cancelBtn.style.display = 'none';
+      // restore remove visibility
+      if (removeBtn) removeBtn.style.display = '';
+      // restore title visibility and hide name input
+      try { if (title) title.style.display = ''; } catch (e) {}
+      nameInput.style.display = 'none';
+      colorInput.style.display = 'none';
+      persistChildSettings();
+      setStatus('Settings saved');
+      drawAll();
+    });
+    cancelBtn.addEventListener('click', () => {
+      nameInput.value = g.name;
+      colorInput.value = g.color;
+      editBtn.style.display = '';
+      saveBtn.style.display = 'none';
+      cancelBtn.style.display = 'none';
+      // restore remove visibility
+      if (removeBtn) removeBtn.style.display = '';
+      // restore title visibility and hide name input
+      try { if (title) title.style.display = ''; } catch (e) {}
+      nameInput.style.display = 'none';
+      colorInput.style.display = 'none';
+    });
+    nameInput.addEventListener('change', () => { /* no-op until saved */ });
+    colorInput.addEventListener('input', () => { /* preview handled on save/draw */ });
     tareBtn.addEventListener('click', () => sendTareCommand(id));
     removeBtn.addEventListener('click', () => removeChildGraph(id));
 
-    childGraphs.set(String(id), g);
+    childGraphs.set(key, g);
+    // apply initial color to the container/title/weight elements
+    try {
+      g.container.style.background = g.color || '';
+      const textCol = textColorForBg(g.color || '');
+      if (g.titleEl) g.titleEl.style.color = textCol;
+      if (g.weightEl) g.weightEl.style.color = textCol;
+    } catch (e) {}
     persistChildSettings();
+    console.log('Created child graph', key, serverName);
     return g;
   }
 
@@ -89,9 +168,30 @@
     // Debug: show which child keys arrived
     try { console.log('processChildren keys:', Object.keys(obj.children)); } catch (e) {}
     const now = Date.now();
+    // Support two formats: array of {id,weight,name} (server) or object map id->{weight,name}
+    if (Array.isArray(obj.children)) {
+      obj.children.forEach(entry => {
+        if (!entry) return;
+        const k = String(entry.id || '');
+        const val = (entry.weight === undefined) ? NaN : entry.weight;
+        const serverName = entry.name;
+        const g = createChildGraph(k, val, serverName);
+        if (val === null || val === undefined || isNaN(val)) g.data.push({ t: now, v: NaN }); else { g.data.push({ t: now, v: Number(val) }); g.lastSeen = now; }
+        const cutoff = now - WINDOW_MS; while (g.data.length && g.data[0].t < cutoff) g.data.shift();
+      });
+      return;
+    }
     Object.keys(obj.children).forEach(k => {
-      const val = obj.children[k];
-      const g = createChildGraph(k, val);
+      const entry = obj.children[k];
+      let val = undefined;
+      let serverName = undefined;
+      if (entry !== null && typeof entry === 'object') {
+        val = entry.weight;
+        serverName = entry.name;
+      } else {
+        val = entry;
+      }
+      const g = createChildGraph(k, val, serverName);
       // update data
       if (val === null || val === undefined || isNaN(val)) {
         g.data.push({ t: now, v: NaN });
@@ -212,7 +312,7 @@
 
   // calibration
   if (calibrateBtn) calibrateBtn.addEventListener('click', () => {
-    const which = Number(calScale.value) || 1;
+    const which = Number((calScale && calScale.value) ? calScale.value : 1) || 1;
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send('calibrate:' + which);
       setStatus('Calibrate sent');
@@ -226,11 +326,16 @@
     // Colors for child graphs are managed per-graph; just redraw the table/graphs
     drawAll();
   }
-  // No global color inputs for parent UI; just apply initial colors
+  // color inputs removed for local scales; colors are per-child now
   applyColors();
 
-  // Clear dynamic child data
-  clearBtn.addEventListener('click', () => { childGraphs.forEach(g => { g.data.length = 0; }); drawAll(); setStatus('Data cleared'); });
+  // edit UI (no local scale edit controls since local UI removed)
+
+  // Local scale edit UI removed; names/colors are managed per-child now.
+
+  // edit controls removed for local scales (no local boxes)
+
+  if (clearBtn) clearBtn.addEventListener('click', () => { if (window.data1) data1.length = 0; if (window.data2) data2.length = 0; drawAll(); setStatus('Data cleared'); });
 
   // Reset persisted child display settings to defaults
   const resetBtn = document.getElementById('resetBtn');
@@ -239,10 +344,16 @@
     fetch('/settings/reset', { method: 'POST' })
       .then(r => r.json())
       .then(j => {
-        // clear persisted overrides
+        // clear persisted child name/color overrides and reset current graphs
+        Object.keys(persistedChildNames).forEach(k => delete persistedChildNames[k]);
+        Object.keys(persistedChildColors).forEach(k => delete persistedChildColors[k]);
         localStorage.removeItem('childNames');
         localStorage.removeItem('childColors');
-        childGraphs.forEach((g, id) => { g.name = 'Node ' + id; g.color = '#0077cc'; });
+        childGraphs.forEach((g, id) => {
+          g.name = 'Node ' + id;
+          g.color = '#525c63ff';
+        });
+        persistChildSettings();
         applyColors();
         setStatus('Defaults restored');
       }).catch(()=> setStatus('Reset failed'));
@@ -255,6 +366,7 @@
       const ms = Number(btn.getAttribute('data-ms')) || 0;
       if (!ms) return;
       WINDOW_MS = ms;
+      if (timeSpan) timeSpan.value = String(ms);
       selectorWrap.querySelectorAll('.winBtn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       setStatus('Window: ' + (ms >= 60000 ? (ms/60000) + 'm' : (ms/1000) + 's'));
@@ -295,11 +407,17 @@
     childGraphs.forEach((g, id) => {
       drawGraph(g.canvas, g.ctx, g.data, g.color || '#0077cc');
       try {
-        const titleEl = g.container.querySelector('.dgTitleRow div');
+        const titleEl = g.titleEl || g.container.querySelector('.dgTitleRow div');
         if (titleEl) titleEl.textContent = (g.name || ('Node ' + id));
+        // update current weight display
+        const last = g.data.length ? g.data[g.data.length - 1] : null;
+        if (g.weightEl) {
+          g.weightEl.textContent = (last && !isNaN(last.v)) ? (last.v.toFixed(2) + ' g') : '-- g';
+        }
       } catch (e) {}
     });
-    updateSpecTable();
+    // update the spec table based on active child graphs
+    if (typeof updateSpecTableDetailed === 'function') updateSpecTableDetailed(); else updateSpecTable();
   }
 
   // helper: pick readable text color for a given background hex
@@ -314,7 +432,7 @@
   }
 
   // build/update the spec table dynamically based on active child graphs
-  function updateSpecTable() {
+  function updateSpecTableDetailed() {
     if (!specTable) return;
     // header row: first cell label, then one column per active child (order by lastSeen desc)
     const children = Array.from(childGraphs.entries()).sort((a,b) => b[1].lastSeen - a[1].lastSeen);

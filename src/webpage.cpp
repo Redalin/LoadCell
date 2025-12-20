@@ -95,22 +95,23 @@ static void addChildToJson(uint8_t childId, float weight) {
 
 // Send current weight to all connected websocket clients as JSON
 static void notifyClients(){
-  StaticJsonDocument<512> doc;
+  StaticJsonDocument<1024> doc;
   
   // If parent node, only include child node data from ESP-NOW
   if (ESPNOW_IS_PARENT) {
-    // Reset change flag
-    dataChanged = false;
-    
-    // Include child node data using callback iteration (avoids looping 1-255)
-    JsonObject children = doc.createNestedObject("children");
-    globalDoc = &doc;
-    espnowForEachChildWeight(addChildToJson);
-    globalDoc = nullptr;
-    
-    // Only send if data changed or if this is a new client (deltaMode)
-    if (!dataChanged && ws.count() > 0) {
-      return;  // Skip broadcast if no changes
+    // Include child node data (add up to 10 child nodes). Each child is
+    // sent as an object { "weight": <value>, "name": "hostname" }
+    // Send children as an array of {id, weight, name} to avoid object key issues
+    JsonArray children = doc.createNestedArray("children");
+    for (uint8_t i = 1; i <= 10; i++) {
+      float childWeight = espnowGetChildWeight(i);
+      if (!isnan(childWeight)) {
+        JsonObject child = children.createNestedObject();
+        child["id"] = i;
+        child["weight"] = childWeight;
+        const char* hn = espnowGetChildName(i);
+        if (hn && hn[0] != '\0') child["name"] = hn;
+      }
     }
     
     doc["mode"] = "parent";
@@ -121,8 +122,11 @@ static void notifyClients(){
     doc["mode"] = "child";
   }
   
-  char buf[512];
-  size_t n = serializeJson(doc, buf);
+  char buf[1024];
+  size_t n = serializeJson(doc, buf, sizeof(buf));
+  // log outgoing JSON for debugging (will appear on Serial)
+  // Serial.print("WS OUT: ");
+  // Serial.println(buf);
   ws.textAll(buf, n);
 }
 
@@ -171,15 +175,14 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
         Serial.print(nodeId);
         Serial.print(" scale ");
         Serial.println(scale);
-        espnowSendTare(nodeId, scale);
+        espnowSendTare(nodeId);
         notifyClients();
       } else if (msg.startsWith("tare:")) {
         // Simple format: tare:nodeId -> send to child node with scale 1
         uint8_t nodeId = msg.substring(5).toInt();
         Serial.print("Sending tare command to child node ");
         Serial.print(nodeId);
-        Serial.println(" scale 1");
-        espnowSendTare(nodeId, 1);
+        espnowSendTare(nodeId);
         notifyClients();
       }
     } else {

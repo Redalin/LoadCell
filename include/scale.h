@@ -11,8 +11,8 @@ void scaleTare();
 void scaleTareAll();  // Tare all connected scales (compatibility function)
 
 // Calibrate the scale (child nodes only have one scale)
-float scaleCalibrate(int which = 1);
-void scaleCalibrateAsync(int which = 1, uint32_t clientId = 0);
+float scaleCalibrate();
+void scaleCalibrateAsync( uint32_t clientId );
 float scaleRead(); // Read from the scale
 float scaleDummyRead();  // For testing without scale
 
