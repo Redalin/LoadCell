@@ -67,6 +67,8 @@ void loop()
       scaleTare();
       // optional: send ack back (not implemented)
     }
+    // slow down loop for scale readings
+    delay(500);
   }
-  delay(200);
+  delay(500);
 }
