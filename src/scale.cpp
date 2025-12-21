@@ -57,7 +57,6 @@ float scaleCalibrate() {
 // Tare the single scale on child node
 void scaleTare() {
     if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
-    // Child nodes only have one scale, so ignore 'which' parameter
     Serial.println("Tare scale...");
     if (scale.wait_ready_timeout(500)) scale.tare(); else Serial.println("HX711 not found.");
     Serial.println("Tare done...");
