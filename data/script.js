@@ -454,6 +454,21 @@
         const sum = visible.reduce((s,p) => s + p.v, 0);
         const avg = sum / visible.length;
         td.textContent = avg.toFixed(2) + ' g';
+        
+        // TrafficLight color coding vs MIN_SPEC:
+        // >= MIN_SPEC -> green, within 5g under -> orange, more than 5g under -> red, more than 100g under or NaN -> no color
+        const diff = avg - MIN_SPEC;
+        let trafficLightColour = '';
+        if (!isNaN(diff)) {
+          if (diff >= 0) trafficLightColour = '#4CAF50';
+          else if (diff > -5) trafficLightColour = '#FFA500';
+          else if (diff > -100) trafficLightColour = '#FF5252';
+          else trafficLightColour = '';
+        }
+        if (trafficLightColour) {
+          td.style.background = trafficLightColour;
+          td.style.color = textColorForBg(trafficLightColour);
+        }
       }
       avgRow.appendChild(td);
     });
