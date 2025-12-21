@@ -7,7 +7,7 @@
 
 #endif
 
-#define DEBUG 1
+#define DEBUG 0
 
 #if DEBUG
     #define debug(message) Serial.print(message)
@@ -26,9 +26,19 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 #define LOADCELL_DOUT_PIN 14
 #define LOADCELL_SCK_PIN 13
 
+// Tare button pin
+#define TARE_BUTTON_PIN 16
+
+// VBAT measurement pin (ADC input). Change if your hardware uses a different pin.
+// Default is GPIO35 (ADC1_CH7) which is input-only on many ESP32 boards.
+#define VBAT_PIN 35
+// Voltage divider ratio: actual_voltage = measured_voltage * VBAT_DIVIDER
+// e.g. if using two equal resistors, VBAT_DIVIDER = 2.0
+#define VBAT_DIVIDER 2.0f
+
 // ESP-NOW Configuration
 // Set to 0 for parent node (receives data), 1-4 for child nodes (sends data)
-#define DEVICE_ID 0
+#define DEVICE_ID 1
 
 #if DEVICE_ID == 0  // Parent node ID
   #define ESPNOW_IS_PARENT 1

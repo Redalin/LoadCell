@@ -11,6 +11,7 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <math.h>
 #include "display-oled.h"
 // #include <WiFi.h>
 
@@ -54,16 +55,70 @@ void displayText(String message) {
   display.display();
 }
 
-void displayWeight(String weight) {
+void displayWeight(String weight, float voltage) {
   display.clearDisplay();
 
-  display.setTextSize(3.5);      // Normal 1:1 pixel scale
-  // display.setTextColor(BLACK); // Draw white text
-  display.setCursor(0, 0);     // Start top left corner
-  // display.cp437(true);         // Use full 256 char 'Code Page 437' font
-
+  // Draw weight on the left
+  display.setTextSize(3.5);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 0);
   display.print(weight);
   display.println("g");
+
+  // Draw battery indicator in bottom-right (horizontal, compact)
+  const int bw = 18; // battery body width
+  const int bh = 8;  // battery body height
+  const int tipW = 2; // tip width
+  const int x = SCREEN_WIDTH - bw - tipW; // left of battery body
+  const int y = SCREEN_HEIGHT - bh; // bottom aligned
+
+  if (!isnan(voltage)) {
+    // If external USB (~>=4.5V) or ADC reads very low treat as USB
+    if (voltage >= 4.5f || voltage < 0.10f) {
+      // draw lightning bolt centered in the battery area
+      const int bx = x + bw/2 - 6;
+      const int by = y;
+      // horizontal lightning bolt (points to the right)
+      display.drawLine(bx,     by+3, bx+6,  by+1, WHITE);
+      display.drawLine(bx+6,  by+1, bx+6,  by+5, WHITE);
+      display.drawLine(bx+6,  by+5, bx+12, by+3, WHITE);
+      // also draw a small filled battery outline to indicate presence
+      display.drawRect(x, y, bw, bh, WHITE);
+      display.fillRect(x + bw + 1, y + (bh/2) - 1, tipW, 2, WHITE);
+    } else {
+      // Constrain voltage to cell range 2.8..4.2
+      float v = voltage;
+      if (v < 2.8f) v = 2.8f;
+      if (v > 4.2f) v = 4.2f;
+      float pct = (v - 2.8f) / (4.2f - 2.8f);
+      if (pct < 0) pct = 0; if (pct > 1) pct = 1;
+
+      // draw battery outline and tip
+      display.drawRect(x, y, bw, bh, WHITE);
+      display.fillRect(x + bw, y + (bh/2) - (tipW/2), tipW, tipW, WHITE);
+
+      // inner padding
+      const int innerPad = 2;
+      const int innerW = bw - innerPad*2;
+      const int innerH = bh - innerPad*2;
+      int fillW = (int)round(innerW * pct);
+      // draw level from left to right
+      if (fillW > 0) {
+        display.fillRect(x + innerPad, y + innerPad, fillW, innerH, WHITE);
+      }
+    }
+
+    // Print numeric voltage to left of icon
+    char vb[8];
+    snprintf(vb, sizeof(vb), "%.1fV", voltage);
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+    int tx = x - 2 - (6 * (int)strlen(vb)); // rough width estimate (6 px per char)
+    if (tx < 0) tx = 0;
+    display.setCursor(tx, y);
+    display.print(vb);
+  }
+
   display.display();
 }
 

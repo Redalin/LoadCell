@@ -99,11 +99,11 @@ static void notifyClients(){
   
   // If parent node, only include child node data from ESP-NOW
   if (ESPNOW_IS_PARENT) {
-    // Include child node data (add up to 10 child nodes). Each child is
+    // Include child node data (add up to 5 child nodes). Each child is
     // sent as an object { "weight": <value>, "name": "hostname" }
     // Send children as an array of {id, weight, name} to avoid object key issues
     JsonArray children = doc.createNestedArray("children");
-    for (uint8_t i = 1; i <= 10; i++) {
+    for (uint8_t i = 1; i <= 5; i++) {
       float childWeight = espnowGetChildWeight(i);
       if (!isnan(childWeight)) {
         JsonObject child = children.createNestedObject();
@@ -161,20 +161,10 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
       } else if (msg.startsWith("tare:child:")) {
         // Parse: "tare:child:nodeId" or "tare:child:nodeId:scale"
         String remainder = msg.substring(11);  // Skip "tare:child:"
-        int colonIdx = remainder.indexOf(':');
-        uint8_t nodeId, scale = 1;
-        
-        if (colonIdx > 0) {
-          nodeId = remainder.substring(0, colonIdx).toInt();
-          scale = remainder.substring(colonIdx + 1).toInt();
-        } else {
-          nodeId = remainder.toInt();
-        }
+        uint8_t nodeId = remainder.toInt(); // Get nodeId from final value after last colon
         
         Serial.print("Sending tare command to node ");
-        Serial.print(nodeId);
-        Serial.print(" scale ");
-        Serial.println(scale);
+        Serial.println(nodeId);
         espnowSendTare(nodeId);
         notifyClients();
       } else if (msg.startsWith("tare:")) {

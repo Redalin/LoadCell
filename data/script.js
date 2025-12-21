@@ -388,8 +388,8 @@
       if (!started) { ctx.moveTo(x, y); started = true; } else { ctx.lineTo(x, y); }
     }
     ctx.stroke();
-    ctx.fillStyle = '#333'; ctx.font = '12px sans-serif'; ctx.fillText(max.toFixed(2) + ' g', pad + 4, pad + 12);
-    ctx.fillText(min.toFixed(2) + ' g', pad + 4, canvas.clientHeight - pad - 2);
+    ctx.fillStyle = '#333'; ctx.font = '12px sans-serif'; ctx.fillText(max.toFixed(1) + ' g', pad + 4, pad + 12);
+    ctx.fillText(min.toFixed(1) + ' g', pad + 4, canvas.clientHeight - pad - 2);
   }
 
   function drawAll() {
@@ -402,7 +402,7 @@
         // update current weight display
         const last = g.data.length ? g.data[g.data.length - 1] : null;
         if (g.weightEl) {
-          g.weightEl.textContent = (last && !isNaN(last.v)) ? (last.v.toFixed(2) + ' g') : '-- g';
+          g.weightEl.textContent = (last && !isNaN(last.v)) ? (last.v.toFixed(1) + ' g') : '-- g';
         }
       } catch (e) {}
     });
@@ -453,7 +453,7 @@
       } else {
         const sum = visible.reduce((s,p) => s + p.v, 0);
         const avg = sum / visible.length;
-        td.textContent = avg.toFixed(2) + ' g';
+        td.textContent = avg.toFixed(1) + ' g';
         
         // TrafficLight color coding vs MIN_SPEC:
         // >= MIN_SPEC -> green, within 5g under -> orange, more than 5g under -> red, more than 100g under or NaN -> no color

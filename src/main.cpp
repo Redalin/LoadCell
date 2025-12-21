@@ -8,7 +8,18 @@
 #include "display-oled.h"
 #include "espnow.h"
 
+// read VBAT helper (uses analogRead)
+static float readVBAT() {
+  // analogRead returns 0..4095 on ESP32 (12-bit)
+  const int raw = analogRead(VBAT_PIN);
+  const float measured = (raw / 4095.0f) * 3.3f; // measured at ADC pin
+  const float actual = measured * VBAT_DIVIDER;
+  return actual;
+}
+
 String mainMessage = "Starting up...";
+// Button state tracking for tare button
+static int lastTareButtonState = HIGH; // set it high initially (not pressed)
 
 void setup()
 {
@@ -19,6 +30,13 @@ void setup()
 
   // initialise the OLED display
   displaysetup();
+
+  // configure tare button pin (use internal pullup so LOW means pressed)
+  pinMode(TARE_BUTTON_PIN, INPUT_PULLUP);
+
+  // configure VBAT ADC pin
+  analogSetPinAttenuation(VBAT_PIN, ADC_11db);
+  analogReadResolution(12);
 
   // Ok even the Child nodes need Wifi
 
@@ -54,16 +72,32 @@ void loop()
     if (!isnan(reading)) {
       espnowSendWeight(reading);
 
-      mainMessage = String(reading);
-      displayWeight(mainMessage); // print weight to OLED
+      mainMessage = String(reading, 1);
+      float vbat = readVBAT();
+      displayWeight(mainMessage, vbat); // print weight and battery to OLED
     }
 
-    // espnowSendAveragedWeightIfReady();  // Send average every 500ms if buffer has data
-    
+    // Check tare button (rising edge with debounce)
+    int btnState = digitalRead(TARE_BUTTON_PIN);
+    debug("Tare Button State: ");
+    debug(btnState);
+    debug(" Last State: ");
+    debugln(lastTareButtonState);
+
+    if (btnState == LOW && lastTareButtonState == HIGH) {
+      debugln("Tare button is PRESSED - sending tare command");
+      scaleTare(); //send tare command
+    } else if (btnState == LOW && lastTareButtonState == LOW) {
+      debugln("Tare button is STILL PRESSED");
+    } else {
+      debugln("Tare button is NOT pressed");
+    }
+    lastTareButtonState = btnState; // update button state
+
     // Check for pending tare commands
     uint8_t tareCmd = espnowGetPendingTareCommand();
     if (tareCmd != 0) {
-      Serial.println("Performing pending tare command");
+      debugln("Performing pending tare command");
       scaleTare();
       // optional: send ack back (not implemented)
     }

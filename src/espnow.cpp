@@ -124,7 +124,7 @@ void espnowOnRecv(const uint8_t *mac_addr, const uint8_t *data, int len) {
         Serial.print(" (");
         Serial.print(payload->name);
         Serial.print("): ");
-        Serial.print(payload->value);
+        Serial.print(payload->value, 1);
         Serial.println(" g");
         
         // Store the weight data
@@ -257,7 +257,7 @@ void espnowSendAveragedWeightIfReady() {
     Serial.print(" - ");
     Serial.print(data.name);
     Serial.print(": ");
-    Serial.print(average); 
+    Serial.print(average, 1); 
     Serial.println(" g");
 
     esp_err_t result = esp_now_send(parentMac, (uint8_t *)&data, sizeof(data));
@@ -290,7 +290,7 @@ void espnowSendWeight(float weight) {
   Serial.print(" - ");
   Serial.print(data.name);
   Serial.print(": ");
-  Serial.print(weight); 
+  Serial.print(weight, 1); 
   Serial.println(" g");
 
   esp_err_t result = esp_now_send(parentMac, (uint8_t *)&data, sizeof(data));
