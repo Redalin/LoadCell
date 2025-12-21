@@ -3,9 +3,8 @@
   const calibrateBtn = document.getElementById('calibrateBtn');
   const calScale = document.getElementById('calScale');
   const timeSpan = document.getElementById('timeSpan');
-  const calResult = document.getElementById('calResult');
   const tareAllBtn = document.getElementById('tareAllBtn');
-  const clearBtn = document.getElementById('clearBtn');
+
 
   // The UI will only display graphs for nodes that send data via ESP-NOW.
 
@@ -28,8 +27,6 @@
   }
 
   const scaleBoxesContainer = document.getElementById('scaleBoxes');
-  const specAvg1El = document.getElementById('specAvg1');
-  const specAvg2El = document.getElementById('specAvg2');
 
   function createChildGraph(id, firstValue, serverName) {
     const key = String(id);
@@ -63,10 +60,10 @@
     titleRow.appendChild(title); titleRow.appendChild(nameInput); titleRow.appendChild(weightEl); titleRow.appendChild(tareBtn);
     header.appendChild(titleRow);
     const controls = document.createElement('div');
-    const editBtn = document.createElement('button'); editBtn.className = 'dgEdit'; editBtn.innerHTML = '✏️'; editBtn.title = 'Edit';
-    const saveBtn = document.createElement('button'); saveBtn.className = 'dgSave'; saveBtn.innerHTML = '✔️'; saveBtn.style.display = 'none'; saveBtn.title = 'Save'; saveBtn.style.color = 'green';
-    const cancelBtn = document.createElement('button'); cancelBtn.className = 'dgCancel'; cancelBtn.innerHTML = '✕'; cancelBtn.style.display = 'none'; cancelBtn.title = 'Cancel'; cancelBtn.style.color = 'red';
-    const removeBtn = document.createElement('button'); removeBtn.className = 'dgRemove'; removeBtn.innerHTML = '✕'; removeBtn.title = 'Remove';
+    const editBtn = document.createElement('button'); editBtn.className = 'material-icons'; editBtn.innerHTML = 'mode_edit'; editBtn.title = 'Edit';
+    const saveBtn = document.createElement('button'); saveBtn.className = 'material-icons'; saveBtn.innerHTML = 'save'; saveBtn.style.display = 'none'; saveBtn.title = 'Save'; saveBtn.style.color = 'green';
+    const cancelBtn = document.createElement('button'); cancelBtn.className = 'material-icons'; cancelBtn.innerHTML = 'undo'; cancelBtn.style.display = 'none'; cancelBtn.title = 'Cancel'; cancelBtn.style.color = 'red';
+    const removeBtn = document.createElement('button'); removeBtn.className = 'material-icons'; removeBtn.innerHTML = 'remove'; removeBtn.title = 'Remove';
     controls.appendChild(colorInput); controls.appendChild(editBtn); controls.appendChild(saveBtn); controls.appendChild(cancelBtn); controls.appendChild(removeBtn);
     header.appendChild(controls);
     card.appendChild(header);
@@ -166,7 +163,7 @@
   function processChildren(obj) {
     if (!obj || !obj.children) return;
     // Debug: show which child keys arrived
-    try { console.log('processChildren keys:', Object.keys(obj.children)); } catch (e) {}
+    // try { console.log('processChildren keys:', Object.keys(obj.children)); } catch (e) {}
     const now = Date.now();
     // Support two formats: array of {id,weight,name} (server) or object map id->{weight,name}
     if (Array.isArray(obj.children)) {
@@ -236,7 +233,7 @@
       }
     });
   }
-
+  // Default time window = 5 minutes
   let WINDOW_MS = 5 * 60 * 1000;
   const selectorWrap = document.getElementById('windowSelectors');
 
@@ -326,16 +323,9 @@
     // Colors for child graphs are managed per-graph; just redraw the table/graphs
     drawAll();
   }
-  // color inputs removed for local scales; colors are per-child now
+  
+
   applyColors();
-
-  // edit UI (no local scale edit controls since local UI removed)
-
-  // Local scale edit UI removed; names/colors are managed per-child now.
-
-  // edit controls removed for local scales (no local boxes)
-
-  if (clearBtn) clearBtn.addEventListener('click', () => { if (window.data1) data1.length = 0; if (window.data2) data2.length = 0; drawAll(); setStatus('Data cleared'); });
 
   // Reset persisted child display settings to defaults
   const resetBtn = document.getElementById('resetBtn');
