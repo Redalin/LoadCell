@@ -12,9 +12,14 @@
 static float readVBAT() {
   // analogRead returns 0..4095 on ESP32 (12-bit)
   const int raw = analogRead(VBAT_PIN);
-  const float measured = (raw / 4095.0f) * 3.3f; // measured at ADC pin
+  const float measured = (raw / ADC_RESOLUTION) * REF_VOLTAGE; // measured at ADC pin
   const float actual = measured * VBAT_DIVIDER;
+  
+  Serial.print("VBAT raw: "); Serial.print(raw);
+  Serial.print(" measured: "); Serial.print(measured, 2);
+  Serial.println("v");
   return actual;
+  
 }
 
 String mainMessage = "Starting up...";

@@ -74,7 +74,7 @@ void displayWeight(String weight, float voltage) {
 
   if (!isnan(voltage)) {
     // If external USB (~>=4.5V) or ADC reads very low treat as USB
-    if (voltage >= 4.5f || voltage < 0.10f) {
+    if (voltage >= 4.5 || voltage < 0.10) {
       // draw lightning bolt centered in the battery area
       const int bx = x + bw/2 - 6;
       const int by = y;
@@ -88,9 +88,9 @@ void displayWeight(String weight, float voltage) {
     } else {
       // Constrain voltage to cell range 2.8..4.2
       float v = voltage;
-      if (v < 2.8f) v = 2.8f;
-      if (v > 4.2f) v = 4.2f;
-      float pct = (v - 2.8f) / (4.2f - 2.8f);
+      if (v < 2.8) v = 2.8;
+      if (v > 4.2) v = 4.2;
+      float pct = (v - 2.8) / (4.2 - 2.8);
       if (pct < 0) pct = 0; if (pct > 1) pct = 1;
 
       // draw battery outline and tip

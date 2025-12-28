@@ -31,10 +31,16 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 
 // VBAT measurement pin (ADC input). Change if your hardware uses a different pin.
 // Default is GPIO35 (ADC1_CH7) which is input-only on many ESP32 boards.
-#define VBAT_PIN 35
+#define VBAT_PIN 36
 // Voltage divider ratio: actual_voltage = measured_voltage * VBAT_DIVIDER
 // e.g. if using two equal resistors, VBAT_DIVIDER = 2.0
-#define VBAT_DIVIDER 2.0f
+#define VBAT_DIVIDER_R1 16600
+#define VBAT_DIVIDER_R2 16600
+#define VBAT_DIVIDER ((float)(VBAT_DIVIDER_R1 + VBAT_DIVIDER_R2) / (float)VBAT_DIVIDER_R2)
+
+
+#define REF_VOLTAGE 4.5  // ADC reference voltage
+#define ADC_RESOLUTION 3200.0  // 12-bit ADC
 
 // ESP-NOW Configuration
 // Set to 0 for parent node (receives data), 1-4 for child nodes (sends data)
