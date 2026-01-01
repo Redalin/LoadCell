@@ -7,44 +7,19 @@
 #include "settings.h"
 #include "display-oled.h"
 #include "espnow.h"
+#include "battery.h"
 
 
 
-// Optional: smoothing
-static uint32_t readAveragedMilliVolts(int pin, int samples = 16) {
-  uint32_t sum = 0;
-  for (int i = 0; i < samples; ++i) {
-    sum += analogReadMilliVolts(pin);
-    delayMicroseconds(200); // small settle time
-  }
-  return sum / samples;
-}
 
-
-// read VBAT helper (uses analogRead)
-static float readVBAT() {  
-// Ensure correct attenuation for your expected pin voltage
-  // If the ADC pin sees < 1.1V (as with your divider), ADC_0db is okay.
-  // Using ADC_11db is also fine; analogReadMilliVolts accounts for it.
-  analogSetPinAttenuation(VBAT_PIN, ADC_0db);  // or ADC_11db
-
-  // (Optional) increase ADC width; default is 12-bit
-  analogReadResolution(12);
-
-  // Read calibrated millivolts at the pin
-  uint32_t mv = readAveragedMilliVolts(VBAT_PIN, 16);  // mV at ADC pin
-  float measured = mv / 1000.0f;                       // V at ADC pin
-  float actual = measured * VBAT_DIVIDER;              // V at battery
-  Serial.print("VBAT raw: "); Serial.print(mv);
-  Serial.print(" measured: "); Serial.print(measured, 2);
-  Serial.println("v");
-  return actual;
-  
-}
 
 String mainMessage = "Starting up...";
 // Button state tracking for tare button
 static int lastTareButtonState = HIGH; // set it high initially (not pressed)
+static int batteryReadCounter = 0;  // Counter for battery reading
+static int scaleReadCounter = 0;    // Counter for scale reading
+
+float vbat = 0; // Initial definition of battery voltage
 
 void setup()
 {
@@ -60,7 +35,7 @@ void setup()
   pinMode(TARE_BUTTON_PIN, INPUT_PULLUP);
 
   // configure VBAT ADC pin
-  analogSetPinAttenuation(VBAT_PIN, ADC_11db);
+  analogSetPinAttenuation(VBAT_PIN, ADC_0db);
   analogReadResolution(12);
 
   // Ok even the Child nodes need Wifi
@@ -84,6 +59,9 @@ void setup()
   // load persisted settings
   settingsInit();
 
+  // get an initial vbat reading
+  vbat = readVBAT();
+
 }
 
 void loop()
@@ -92,17 +70,27 @@ void loop()
   if (ESPNOW_IS_PARENT) {
     webBroadcastLoop();
   } else {
-    // Child node: read scale, buffer it, and send averaged data every 500ms
-    float reading = scaleRead();  // Read from primary scale
-    if (!isnan(reading)) {
-      espnowSendWeight(reading);
+    // Child node: read scale and send weight to parent every 500ms
+    if (++scaleReadCounter >= 5) { // 5 * 100ms = 500ms
+      scaleReadCounter = 0;
+      float reading = scaleRead();  // Read from primary scale
+      if (!isnan(reading)) {
+        espnowSendWeight(reading);
 
-      mainMessage = String(reading, 1);
-      float vbat = readVBAT();
-      displayWeight(mainMessage, vbat); // print weight and battery to OLED
+        mainMessage = String(reading, 1);
+        displayWeight(mainMessage, vbat); // print weight and battery to OLED
+      }
+
+      // Check for pending tare commands
+      uint8_t tareCmd = espnowGetPendingTareCommand();
+      if (tareCmd != 0) {
+        debugln("Performing pending tare command");
+        scaleTare();
+        // optional: send ack back (not implemented)
+      }
     }
 
-    // Check tare button (rising edge with debounce)
+    // Check tare button every loop
     int btnState = digitalRead(TARE_BUTTON_PIN);
     debug("Tare Button State: ");
     debug(btnState);
@@ -118,16 +106,17 @@ void loop()
       debugln("Tare button is NOT pressed");
     }
     lastTareButtonState = btnState; // update button state
-
-    // Check for pending tare commands
-    uint8_t tareCmd = espnowGetPendingTareCommand();
-    if (tareCmd != 0) {
-      debugln("Performing pending tare command");
-      scaleTare();
-      // optional: send ack back (not implemented)
-    }
-    // slow down loop for scale readings
-    delay(500);
   }
-  delay(500);
+
+  // Read battery voltage every 100 loops (~10 seconds)
+  batteryReadCounter++;
+  debug("Battery Read Counter: ");
+  debugln(batteryReadCounter);
+  if (batteryReadCounter >= 100) {
+    vbat = readVBAT();
+    batteryReadCounter = 0;
+    debugln("Battery Voltage: " + String(vbat, 2) + "v");
+  }
+
+  delay(100);
 }

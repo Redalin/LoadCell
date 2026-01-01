@@ -42,8 +42,7 @@ void displaysetup() {
 }
 
 void displayText(String message) {
-  //Serial.println(F("Into text displaytext method"));  
-  //Serial.println(F("Clearing OLED display"));  
+
   display.clearDisplay();
 
   display.setTextSize(1.5);      // Normal 1:1 pixel scale
@@ -74,7 +73,7 @@ void displayWeight(String weight, float voltage) {
 
   if (!isnan(voltage)) {
     // If external USB (~>=4.5V) or ADC reads very low treat as USB
-    if (voltage >= 4.5 || voltage < 0.10) {
+    if (voltage >= 4.4 || voltage < 0.10) {
       // draw lightning bolt centered in the battery area
       const int bx = x + bw/2 - 6;
       const int by = y;
@@ -86,11 +85,11 @@ void displayWeight(String weight, float voltage) {
       display.drawRect(x, y, bw, bh, WHITE);
       display.fillRect(x + bw + 1, y + (bh/2) - 1, tipW, 2, WHITE);
     } else {
-      // Constrain voltage to cell range 2.8..4.2
+      // Constrain voltage to cell range 3.3..4.2
       float v = voltage;
-      if (v < 2.8) v = 2.8;
+      if (v < 3.3) v = 3.3;
       if (v > 4.2) v = 4.2;
-      float pct = (v - 2.8) / (4.2 - 2.8);
+      float pct = (v - 3.3) / (4.2 - 3.3);
       if (pct < 0) pct = 0; if (pct > 1) pct = 1;
 
       // draw battery outline and tip

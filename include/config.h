@@ -31,8 +31,7 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 // Tare button pin
 #define TARE_BUTTON_PIN 15
 
-// VBAT measurement pin (ADC input). Change if your hardware uses a different pin.
-// Default is GPIO35 (ADC1_CH7) which is input-only on many ESP32 boards.
+// VBAT measurement pin (ADC input). Pin36 Labelled as VP
 #define VBAT_PIN 36
 // Voltage divider ratio: actual_voltage = measured_voltage * VBAT_DIVIDER
 // e.g. if using two equal resistors, VBAT_DIVIDER = 2.0
@@ -64,11 +63,11 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 #elif DEVICE_ID == 3 // Third Child node ID
   #define ESPNOW_IS_PARENT 0
   #define HOSTNAME "Purple"
-  #define CALIBRATION_FACTOR 0
+  #define CALIBRATION_FACTOR 2000
 #elif DEVICE_ID == 4 // Fourth Child node ID
   #define ESPNOW_IS_PARENT 0
   #define HOSTNAME "Black"
-  #define CALIBRATION_FACTOR 0
+  #define CALIBRATION_FACTOR 2000
 #else 
     #error "Invalid DEVICE_ID specified."
 #endif
