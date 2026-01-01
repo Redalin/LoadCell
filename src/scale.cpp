@@ -19,9 +19,6 @@ void initScale() {
         scaleMutex = xSemaphoreCreateMutex();
     }
 
-    if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
-    // mutex for performance in case called from multiple tasks
-
     scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
 
     // Check if tare button is pressed during init to perform Calibration
@@ -30,18 +27,20 @@ void initScale() {
         scaleMessage = "Calibration Mode!";
         displayText(scaleMessage);
         Serial.println(scaleMessage);
-
         float calib = scaleCalibrate();
         if (!isnan(calib)) {
-            scaleMessage = "Calibration complete";
+            scaleMessage = "Calibration done =) \n Resuming normal operation.";
             displayText(scaleMessage);
             Serial.println(scaleMessage);
-            delay(2000);
+            delay(1000);
         } else {
             Serial.println("Calibration failed during init.");
         }
     }
 
+    if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
+    // mutex for performance in case called from multiple tasks
+    
     scale.set_scale(CALIBRATION_FACTOR);
     if (scale.wait_ready_timeout(500)) {
         scale.tare();  // Reset the scale to 0 on initialization
@@ -61,12 +60,12 @@ float scaleCalibrate() {
         scaleMessage = "Calibrating...";
         displayText(scaleMessage);
         Serial.println(scaleMessage);
-        delay(500);
+        delay(2000);
 
         scaleMessage = "Remove any weights from scale.";
         displayText(scaleMessage);
         Serial.println(scaleMessage);
-        delay(500);
+        delay(2000);
 
         scaleMessage = "3";
         displayText(scaleMessage);
@@ -93,7 +92,8 @@ float scaleCalibrate() {
         result = scale.get_units(10);
         scaleMessage = "Calibration: " + String(result, 2);
         displayText(scaleMessage);
-        Serial.print(scaleMessage);
+        Serial.println(scaleMessage);
+        delay(10000);
     } else {
         Serial.println("HX711 not found for calibrate.");
     }

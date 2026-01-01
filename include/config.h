@@ -45,7 +45,7 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 
 // ESP-NOW Configuration
 // Set to 0 for parent node (receives data), 1-4 for child nodes (sends data)
-#define DEVICE_ID 1
+#define DEVICE_ID 0
 
 #if DEVICE_ID == 0  // Parent node ID
   #define ESPNOW_IS_PARENT 1

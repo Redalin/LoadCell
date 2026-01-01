@@ -1,7 +1,5 @@
 (() => {
   const statusEl = document.getElementById('status');
-  const calibrateBtn = document.getElementById('calibrateBtn');
-  const calScale = document.getElementById('calScale');
   const timeSpan = document.getElementById('timeSpan');
   const tareAllBtn = document.getElementById('tareAllBtn');
 
@@ -305,17 +303,6 @@
       .then(r => r.json())
       .then(j => setStatus('Tare OK'))
       .catch(() => setStatus('Tare failed'));
-  });
-
-  // calibration
-  if (calibrateBtn) calibrateBtn.addEventListener('click', () => {
-    const which = Number((calScale && calScale.value) ? calScale.value : 1) || 1;
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send('calibrate:' + which);
-      setStatus('Calibrate sent');
-      return;
-    }
-    setStatus('WS not connected');
   });
 
   // color handling
