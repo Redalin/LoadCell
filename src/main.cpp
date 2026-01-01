@@ -8,14 +8,34 @@
 #include "display-oled.h"
 #include "espnow.h"
 
+
+
+// Optional: smoothing
+static uint32_t readAveragedMilliVolts(int pin, int samples = 16) {
+  uint32_t sum = 0;
+  for (int i = 0; i < samples; ++i) {
+    sum += analogReadMilliVolts(pin);
+    delayMicroseconds(200); // small settle time
+  }
+  return sum / samples;
+}
+
+
 // read VBAT helper (uses analogRead)
-static float readVBAT() {
-  // analogRead returns 0..4095 on ESP32 (12-bit)
-  const int raw = analogRead(VBAT_PIN);
-  const float measured = (raw / ADC_RESOLUTION) * REF_VOLTAGE; // measured at ADC pin
-  const float actual = measured * VBAT_DIVIDER;
-  
-  Serial.print("VBAT raw: "); Serial.print(raw);
+static float readVBAT() {  
+// Ensure correct attenuation for your expected pin voltage
+  // If the ADC pin sees < 1.1V (as with your divider), ADC_0db is okay.
+  // Using ADC_11db is also fine; analogReadMilliVolts accounts for it.
+  analogSetPinAttenuation(VBAT_PIN, ADC_0db);  // or ADC_11db
+
+  // (Optional) increase ADC width; default is 12-bit
+  analogReadResolution(12);
+
+  // Read calibrated millivolts at the pin
+  uint32_t mv = readAveragedMilliVolts(VBAT_PIN, 16);  // mV at ADC pin
+  float measured = mv / 1000.0f;                       // V at ADC pin
+  float actual = measured * VBAT_DIVIDER;              // V at battery
+  Serial.print("VBAT raw: "); Serial.print(mv);
   Serial.print(" measured: "); Serial.print(measured, 2);
   Serial.println("v");
   return actual;
