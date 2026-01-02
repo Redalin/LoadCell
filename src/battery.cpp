@@ -27,9 +27,9 @@ float readVBAT() {
   float mv = readAveragedMilliVolts(VBAT_PIN, 16);  // mV at ADC pin
   float measured = mv / 1000.0f;                       // V at ADC pin
   float actual = measured * VBAT_DIVIDER;              // V at battery
-  Serial.print("VBAT raw: "); Serial.print(mv);
-  Serial.print(" measured: "); Serial.print(measured, 2);
-  Serial.println("v");
+  debug("VBAT raw: "); debug(mv);
+  debug(" measured: "); debug(String(measured, 2));
+  debugln("v");
   return actual;
   
 }

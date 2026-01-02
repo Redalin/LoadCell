@@ -55,7 +55,7 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 #elif DEVICE_ID == 1 // First Child node ID
   #define ESPNOW_IS_PARENT 0
   #define HOSTNAME "Yellow"
-  #define CALIBRATION_FACTOR 2054.7
+  #define CALIBRATION_FACTOR 2128.66
 #elif DEVICE_ID == 2 // Second Child node ID
   #define ESPNOW_IS_PARENT 0
   #define HOSTNAME "Grey"
@@ -67,7 +67,7 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 #elif DEVICE_ID == 4 // Fourth Child node ID
   #define ESPNOW_IS_PARENT 0
   #define HOSTNAME "Black"
-  #define CALIBRATION_FACTOR 2000
+  #define CALIBRATION_FACTOR 1106.69
 #else 
     #error "Invalid DEVICE_ID specified."
 #endif

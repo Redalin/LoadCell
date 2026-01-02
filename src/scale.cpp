@@ -135,25 +135,3 @@ float scaleDummyRead() {
 void scaleTareAll() {
     scaleTare();
 }
-
-// Async calibrate task wrapper
-struct CalArgs { uint32_t clientId; };
-
-static void calibrateTask(void *pvParameters) {
-    CalArgs *args = (CalArgs*)pvParameters;
-    uint32_t clientId = args->clientId;
-    // call synchronous calibrate (it will use delays) from this task
-    float result = scaleCalibrate();
-    // report back
-    sendCalibrationResult(result, clientId);
-    free(args);
-    vTaskDelete(NULL);
-}
-
-// start async calibration (non-blocking)
-void scaleCalibrateAsync(uint32_t clientId) {
-    CalArgs *args = (CalArgs*)malloc(sizeof(CalArgs));
-    if (!args) return;
-    args->clientId = clientId;
-    xTaskCreatePinnedToCore(calibrateTask, "calib", 4096, args, tskIDLE_PRIORITY+1, NULL, 0);
-}
