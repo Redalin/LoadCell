@@ -19,9 +19,7 @@ void initMDNS() {
     }
     Serial.println("mDNS responder started");
     displayText("mDNS responder started");
-    delay(1000);
-    // This is done last, re-print hostname and IP on screen
-    displayText("http:\\\\" + String(WiFi.getHostname()) + "\nIP: " + WiFi.localIP().toString());
+    delay(500);
 }
 
 void initWifi()
@@ -37,13 +35,11 @@ void initWifi()
   }
   else
   {
-    wifiMessage = "No networks found";
+    wifiMessage = "No known WiFi networks found";
     displayText(wifiMessage);
     Serial.println(wifiMessage);
+    delay(2000); // pause to allow display to update
     createWifi();
-    displayText("Created Wifi: " + String(APNAME));
-    // while (true);
-    // We should not be here, no need to go further, hang in there, will auto launch the Soft WDT reset
   }
   // stop wifi from sleeping
   WiFi.setSleep(false);
@@ -104,11 +100,15 @@ String connectToWifi() {
     displayText(wifiMessage);
     delay(2000);
 
+    wifiMessage = "wifi channel: " + String(WiFi.channel());
+    Serial.println(wifiMessage);
+    displayText(wifiMessage);
+    delay(2000); // pause to allow display to update
+
     wifiMessage = "http:\\\\" + String(WiFi.getHostname()) + "\nIP: " + WiFi.localIP().toString();
     Serial.println(wifiMessage);
     displayText(wifiMessage);
-    delay(2000);
-    Serial.println("Wi-Fi Channel: " + String(WiFi.channel()));
+    delay(2000); // pause to allow display to update
 
     return KNOWN_SSID[n];
   } 
@@ -117,6 +117,7 @@ String connectToWifi() {
     wifiMessage = "No WiFi, setup localAP";
     Serial.println(wifiMessage);
     displayText(wifiMessage);
+    delay(2000); // pause to allow display to update
     createWifi();
     return wifiMessage;
   }
