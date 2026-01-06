@@ -92,11 +92,11 @@ void connectToWifi(String SSID) {
   Serial.println(wifiMessage);
   displayText(wifiMessage);
 
-    WiFi.begin(KNOWN_SSID[n], KNOWN_PASSWORD[n]);
+    WiFi.begin(SSID, wifiPass);
     while (WiFi.status() != WL_CONNECTED) {
       delay(1000);
     }
-    wifiMessage = "Connected to \n" + String(KNOWN_SSID[n]);
+    wifiMessage = "Connected to \n" + SSID;
     Serial.println(wifiMessage);
     displayText(wifiMessage);
     delay(2000);
@@ -106,18 +106,6 @@ void connectToWifi(String SSID) {
     displayText(wifiMessage);
     delay(2000);
     Serial.println("Wi-Fi Channel: " + String(WiFi.channel()));
-
-    return KNOWN_SSID[n];
-  } 
-  else 
-  {
-    wifiMessage = "No WiFi, setup localAP";
-    Serial.println(wifiMessage);
-    displayText(wifiMessage);
-    createWifi();
-    return wifiMessage;
-  }
-
 }
 
 String createWifi() {

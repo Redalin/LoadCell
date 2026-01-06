@@ -48,8 +48,6 @@ void setup()
     initWifi();
     initMDNS();
     initwebservers();
-    // Re-print hostname and IP on screen
-    displayText("http:\\\\" + String(WiFi.getHostname()) + "\nIP: " + WiFi.localIP().toString());
   } else {
     // We are a Child node so initialise the scale only
     initScale();
