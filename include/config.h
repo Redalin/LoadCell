@@ -46,7 +46,7 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 
 // ESP-NOW Configuration
 // Set to 0 for parent node (receives data), 1-4 for child nodes (sends data)
-#define DEVICE_ID 0
+#define DEVICE_ID 3
 
 #if DEVICE_ID == 0  // Parent node ID
   #define ESPNOW_IS_PARENT 1
@@ -60,7 +60,7 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 #elif DEVICE_ID == 2 // Second Child node ID
   #define ESPNOW_IS_PARENT 0
   #define HOSTNAME "Grey"
-  #define LIBRATION_FACTOR 1979.4
+  #define CALIBRATION_FACTOR 1979.4
 #elif DEVICE_ID == 3 // Third Child node ID
   #define ESPNOW_IS_PARENT 0
   #define HOSTNAME "Purple"
