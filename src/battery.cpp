@@ -15,13 +15,11 @@ float readAveragedMilliVolts(int pin, int samples) {
 
 // read VBAT helper (uses analogRead)
 float readVBAT() {  
-// Ensure correct attenuation for your expected pin voltage
+  // Ensure correct attenuation for your expected pin voltage
   // If the ADC pin sees < 1.1V (as with your divider), ADC_0db is okay.
   // Using ADC_11db is also fine; analogReadMilliVolts accounts for it.
   // analogSetPinAttenuation(VBAT_PIN, ADC_0db);  // or ADC_11db
 
-  // // (Optional) increase ADC width; default is 12-bit
-  // analogReadResolution(12);
 
   // Read calibrated millivolts at the pin
   float mv = readAveragedMilliVolts(VBAT_PIN, 16);  // mV at ADC pin

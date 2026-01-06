@@ -9,7 +9,8 @@
 void initMDNS();
 void initWifi();
 int scanForWifi();
-String connectToWifi();
+bool checkValidSSID();
+void connectToWifi(String SSID);
 String createWifi();
 
 #endif  // CONNECT_WIFI_H

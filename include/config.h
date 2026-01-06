@@ -22,6 +22,9 @@ constexpr const char* KNOWN_SSID[] = {"DRW", "ChrisnAimee.com"};
 constexpr const char* KNOWN_PASSWORD[] = {"wellington", "carbondell"};
 constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 
+// Access Point credentials (if no known WiFi found)
+#define APNAME "DRWScale"
+#define APPASS "wellington"
 
 
 // Load cell pins and calibration
@@ -39,8 +42,6 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 #define VBAT_DIVIDER_R2 4700
 #define VBAT_DIVIDER ((float)(VBAT_DIVIDER_R1 + VBAT_DIVIDER_R2) / (float)VBAT_DIVIDER_R2)
 
-
-#define REF_VOLTAGE 4.62  // ADC reference voltage
 #define ADC_RESOLUTION 4095.0  // 12-bit ADC
 
 // ESP-NOW Configuration
@@ -72,8 +73,6 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
     #error "Invalid DEVICE_ID specified."
 #endif
 
-#define APNAME "scale.local"
-#define APPASS "wellington"
 
 // Parent node MAC address (set on parent device)
 #define PARENT_MAC_ADDR  {0xa0, 0xdd, 0x6c, 0x02, 0xfb, 0xa4}
