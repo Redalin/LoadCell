@@ -18,6 +18,7 @@ String mainMessage = "Starting up...";
 static int lastTareButtonState = HIGH; // set it high initially (not pressed)
 static int batteryReadCounter = 0;  // Counter for battery reading
 static int scaleReadCounter = 0;    // Counter for scale reading
+static int tareButtonState = HIGH; // default state of the tare button
 
 float vbat = 0; // Initial definition of battery voltage
 
@@ -89,24 +90,32 @@ void loop()
         // optional: send ack back (not implemented)
       }
     }
-
-    // Check tare button every loop
-    int btnState = digitalRead(TARE_BUTTON_PIN);
-    debug("Tare Button State: ");
-    debug(btnState);
-    debug(" Last State: ");
-    debugln(lastTareButtonState);
-
-    if (btnState == LOW && lastTareButtonState == HIGH) {
-      debugln("Tare button is PRESSED - sending tare command");
-      scaleTare(); //send tare command
-    } else if (btnState == LOW && lastTareButtonState == LOW) {
-      debugln("Tare button is STILL PRESSED");
-    } else {
-      debugln("Tare button is NOT pressed");
-    }
-    lastTareButtonState = btnState; // update button state
   }
+  // Check tare button every loop
+  tareButtonState = digitalRead(TARE_BUTTON_PIN);
+  debug("Tare Button State: ");
+  debug(tareButtonState);
+  debug(" Last State: ");
+  debugln(lastTareButtonState);
+
+  if (tareButtonState == LOW && lastTareButtonState == HIGH) {
+    debugln("Tare button is PRESSED - sending tare command");
+    if (!ESPNOW_IS_PARENT) {
+      scaleTare(); // send tare command
+      debugln("Tare performed locally on Child node");
+    } else {
+      // Parent node - broadcast tare command to all child nodes, max of 4
+      for (uint8_t nodeId = 1; nodeId <= 4; nodeId++) {
+        debugln("Sending tare command to node " + String(nodeId));
+        espnowSendTare(nodeId);
+      }
+    }
+  } else if (tareButtonState == LOW && lastTareButtonState == LOW) {
+    debugln("Tare button is STILL PRESSED");
+  } else{
+    // debugln("Tare button is NOT pressed");
+  }
+  lastTareButtonState = tareButtonState; // update button state
 
   // Read battery voltage every 100 loops (~10 seconds)
   batteryReadCounter++;
