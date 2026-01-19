@@ -3,13 +3,14 @@
 #define CONNECT_WIFI_H
 
 #include <WiFi.h>
-#include <WiFiClientSecure.h>
+// #include <WiFiClientSecure.h>
 #include <ESPmDNS.h>
 
 void initMDNS();
 void initWifi();
 int scanForWifi();
-String connectToWifi();
+bool checkValidSSID();
+void connectToWifi(String SSID);
 String createWifi();
 
 #endif  // CONNECT_WIFI_H

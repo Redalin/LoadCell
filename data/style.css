@@ -52,13 +52,13 @@ main {
 
 .controls { display:flex; gap:8px; align-items:center; }
 
-.colorPicker { width:36px; height:28px; border:1px solid #ddd; padding:2px; border-radius:6px; background:#fff; display:none; }
+.colorPicker { width: 30px;; height: 30px;; border:1px solid #ddd; padding:2px; border-radius:6px; background:#fff; display:none; }
 .scaleBox.editing .colorPicker { display:inline-block; }
 
-.editIcon {
+/* .editIcon {
     width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center; border-radius:6px; cursor:pointer; background:rgba(255,255,255,0.12);
 }
-.editIcon svg { width:16px; height:16px; fill:currentColor; }
+.editIcon svg { width:16px; height:16px; fill:currentColor; } */
 .scaleNameInput { display:none; border-radius:6px; padding:6px; border:1px solid rgba(255,255,255,0.12); background:transparent; color:inherit; font-size:1.1rem; max-width:160px; box-sizing:border-box; }
 .scaleBox.editing .scaleNameInput { display:inline-block; }
 .scaleBox.editing .scaleTitle { display:none; }
@@ -70,10 +70,10 @@ main {
 /* hide edit icon while editing */
 .scaleBox.editing .editIcon { display:none; }
 
-.saveBtn { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:6px; background: #1fa84b; color: #fff; border: none; box-shadow: 0 3px 0 rgba(0,0,0,0.08); cursor: pointer; }
+/* .saveBtn { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:6px; background: #1fa84b; color: #fff; border: none; box-shadow: 0 3px 0 rgba(0,0,0,0.08); cursor: pointer; }
 .cancelBtn { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:6px; background: #e04b4b; color: #fff; border: none; box-shadow: 0 3px 0 rgba(0,0,0,0.08); cursor: pointer; }
 .saveBtn:active, .cancelBtn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,0.06); }
-.saveBtn svg, .cancelBtn svg { width:14px; height:14px; fill:currentColor; }
+.saveBtn svg, .cancelBtn svg { width:14px; height:14px; fill:currentColor; } */
 
 .editControls { display:none; gap:8px; align-items:center; flex-shrink:0; }
 .scaleHeader .controls { flex-shrink:0; }

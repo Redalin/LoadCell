@@ -6,15 +6,11 @@
 #include "HX711.h"
 
 void initScale();
-// Tare the single scale (child nodes only have one scale)
-void scaleTare();
-void scaleTareAll();  // Tare all connected scales (compatibility function)
-
-// Calibrate the scale (child nodes only have one scale)
-float scaleCalibrate();
-void scaleCalibrateAsync( uint32_t clientId );
+void scaleTare(); // Tare the scale
+void scaleTareAll();  // Tare all scales (compatibility function)
 float scaleRead(); // Read from the scale
 float scaleDummyRead();  // For testing without scale
+float scaleCalibrate(); // Calibrate the scale
 
 
 
