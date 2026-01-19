@@ -4,6 +4,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include "credentials.h"
+
 // blah blah blah
 // Global battery voltage variable
 extern float vbat;
@@ -20,9 +22,7 @@ extern float vbat;
     #define debugln(message)
 #endif
 
-// Known WiFi networks and passwords
-constexpr const char* KNOWN_SSID[] = {"WiFiName1", "WiFiName2", "WiFiName3"};
-constexpr const char* KNOWN_PASSWORD[] = {"WiFiPass1", "WiFiPass2", "WiFiPass3"};
+// Known WiFi networks and passwords are now in credentials.h
 constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 
 // Access Point credentials (if no known WiFi found)
