@@ -4,7 +4,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include "credentials.h"
+#include "secrets.h"
 
 // blah blah blah
 // Global battery voltage variable
@@ -22,7 +22,7 @@ extern float vbat;
     #define debugln(message)
 #endif
 
-// Known WiFi networks and passwords are now in credentials.h
+// Known WiFi networks and passwords are now in secrets.h
 constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 
 // Access Point credentials (if no known WiFi found)
@@ -80,10 +80,6 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 #else
   #define TARE_BUTTON_PIN 15 // normal scale pin 15. Parent 17 because broken
 #endif
-
-// Input the Parent node MAC address for child nodes to send data to
-#define PARENT_MAC_ADDR  {0xa0, 0xb1, 0xc2, 0xd3, 0xe4, 0xf5}  // Update this with your parent device MAC address
-// eg: a0:b1:c2:d3:e4:f5 = {0xa0, 0xb1, 0xc2, 0xd3, 0xe4, 0xf5}
 
 // Data transmission interval
 #define CHILD_NODE_INTERVAL 1000  // ms between scale readings on child
