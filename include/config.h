@@ -4,6 +4,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+// Global battery voltage variable
+extern float vbat;
 
 #endif
 
@@ -18,13 +20,13 @@
 #endif
 
 // Known WiFi networks and passwords
-constexpr const char* KNOWN_SSID[] = {"DRW", "DRW.yellow", "ChrisnAimee.com"};
-constexpr const char* KNOWN_PASSWORD[] = {"wellington", "wellington", "carbondell"};
+constexpr const char* KNOWN_SSID[] = {"WiFiName1", "WiFiName2", "WiFiName3"};
+constexpr const char* KNOWN_PASSWORD[] = {"WiFiPass1", "WiFiPass2", "WiFiPass3"};
 constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 
 // Access Point credentials (if no known WiFi found)
-#define APNAME "DRW LaunchScale"
-#define APPASS "wellington"
+#define APNAME "ap-name-ssid"
+#define APPASS "ap-password"
 
 
 // Load cell pins and calibration
@@ -35,7 +37,8 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 #define VBAT_PIN 36
 // Voltage divider ratio: actual_voltage = measured_voltage * VBAT_DIVIDER
 // e.g. if using two equal resistors, VBAT_DIVIDER = 2.0
-#define VBAT_DIVIDER_R1 20000
+// input your actual resistor values here:
+#define VBAT_DIVIDER_R1 20000 
 #define VBAT_DIVIDER_R2 4700
 #define VBAT_DIVIDER ((float)(VBAT_DIVIDER_R1 + VBAT_DIVIDER_R2) / (float)VBAT_DIVIDER_R2)
 
@@ -72,22 +75,15 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 
 // Tare button pin
 #ifdef ESPNOW_IS_PARENT
-  #define TARE_BUTTON_PIN 14 // normal scale pin 15. Parent 14 because broken
+  #define TARE_BUTTON_PIN 14 // normal scale pin 15. Parent 14 because 15 is broken on my ESP32
 #else
   #define TARE_BUTTON_PIN 15 // normal scale pin 15. Parent 17 because broken
 #endif
 
-// Parent node MAC address (set on parent device)
-#define PARENT_MAC_ADDR  {0xa0, 0xdd, 0x6c, 0x02, 0xfb, 0xa4}
+// Input the Parent node MAC address for child nodes to send data to
+#define PARENT_MAC_ADDR  {0xa0, 0xb1, 0xc2, 0xd3, 0xe4, 0xf5}  // Update this with your parent device MAC address
+// eg: a0:b1:c2:d3:e4:f5 = {0xa0, 0xb1, 0xc2, 0xd3, 0xe4, 0xf5}
 
-// Child nodes MAC addresses (for parent to add as peers)
-// Update these with your child device MAC addresses
+// Data transmission interval
 #define CHILD_NODE_INTERVAL 1000  // ms between scale readings on child
-#define ESPNOW_CHANNEL 6
-
-// Board MAC address
-// Parent: a0:dd:6c:02:fb:a4
-// Child Grey: a0:dd:6c:04:47:a8
-// Child Yellow: a0:dd:6c:04:47:ac
-// Child Purple: a0:dd:6c:04:47:ad
-// Child Black: a0:dd:6c:04:47:ae
+#define ESPNOW_CHANNEL 6 // WiFi channel for ESP-NOW communication  

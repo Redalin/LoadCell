@@ -25,12 +25,12 @@ void initScale() {
     int tareBtnState = digitalRead(TARE_BUTTON_PIN);
     if (tareBtnState == LOW) {
         scaleMessage = "Calibration Mode!";
-        displayText(scaleMessage);
+        displayText(scaleMessage, vbat);
         Serial.println(scaleMessage);
         float calib = scaleCalibrate();
         if (!isnan(calib)) {
             scaleMessage = "Calibration done =) \n Resuming normal operation.";
-            displayText(scaleMessage);
+            displayText(scaleMessage, vbat);
             Serial.println(scaleMessage);
             delay(1000);
         } else {
@@ -58,40 +58,40 @@ float scaleCalibrate() {
     if (scale.wait_ready_timeout(1000)) {
         scale.set_scale(1.0); // remove existing calibration
         scaleMessage = "Calibrating...";
-        displayText(scaleMessage);
+        displayText(scaleMessage, vbat);
         Serial.println(scaleMessage);
         delay(2000);
 
         scaleMessage = "Remove any weights from scale.";
-        displayText(scaleMessage);
+        displayText(scaleMessage, vbat);
         Serial.println(scaleMessage);
         delay(2000);
 
         scaleMessage = "3";
-        displayText(scaleMessage);
+        displayText(scaleMessage, vbat);
         Serial.println(scaleMessage);
         delay(500);
 
         scaleMessage = "2"; 
-        displayText(scaleMessage);
+        displayText(scaleMessage, vbat);
         Serial.println(scaleMessage);
         delay(500);    
 
         scaleMessage = "1";
-        displayText(scaleMessage);
+        displayText(scaleMessage, vbat);
         Serial.println(scaleMessage);
         delay(500);
 
         scale.tare();
         
         scaleMessage = "Tare done.\nPlace known weight.";
-        displayText(scaleMessage);
+        displayText(scaleMessage, vbat);
         Serial.println(scaleMessage);
         delay(2000);
 
         result = scale.get_units(10);
         scaleMessage = "Calibration: " + String(result, 2);
-        displayText(scaleMessage);
+        displayText(scaleMessage, vbat);
         Serial.println(scaleMessage);
         delay(10000);
     } else {
@@ -129,9 +129,4 @@ float scaleDummyRead() {
     dummyWeight += 10.0;
     if (dummyWeight > 1000.0) dummyWeight = 0.0;
     return dummyWeight;
-}
-
-// Compatibility helper: tare both scales
-void scaleTareAll() {
-    scaleTare();
 }

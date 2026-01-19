@@ -13,14 +13,14 @@ void settingsInit() {
   if (!LittleFS.exists(SETTINGS_PATH)) return;
   File f = LittleFS.open(SETTINGS_PATH, "r");
   if (!f) return;
-  StaticJsonDocument<256> doc;
+  JsonDocument doc;
   DeserializationError err = deserializeJson(doc, f);
   f.close();
   if (err) return;
-  if (doc.containsKey("name1")) name1 = String((const char*)doc["name1"]);
-  if (doc.containsKey("name2")) name2 = String((const char*)doc["name2"]);
-  if (doc.containsKey("color1")) color1 = String((const char*)doc["color1"]);
-  if (doc.containsKey("color2")) color2 = String((const char*)doc["color2"]);
+  if (!doc["name1"].isNull()) name1 = String((const char*)doc["name1"]);
+  if (!doc["name2"].isNull()) name2 = String((const char*)doc["name2"]);
+  if (!doc["color1"].isNull()) color1 = String((const char*)doc["color1"]);
+  if (!doc["color2"].isNull()) color2 = String((const char*)doc["color2"]);
 }
 
 String settingsGetName(int which) {
@@ -40,7 +40,7 @@ void settingsSetColor(int which, const String &c) {
 }
 
 bool settingsSave() {
-  StaticJsonDocument<256> doc;
+  JsonDocument doc;
   doc["name1"] = name1;
   doc["name2"] = name2;
   doc["color1"] = color1;
@@ -53,7 +53,7 @@ bool settingsSave() {
 }
 
 String settingsAsJson() {
-  StaticJsonDocument<256> doc;
+  JsonDocument doc;
   doc["name1"] = name1;
   doc["name2"] = name2;
   doc["color1"] = color1;
