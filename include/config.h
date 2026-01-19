@@ -18,21 +18,18 @@
 #endif
 
 // Known WiFi networks and passwords
-constexpr const char* KNOWN_SSID[] = {"DRW", "ChrisnAimee.com"};
-constexpr const char* KNOWN_PASSWORD[] = {"wellington", "carbondell"};
+constexpr const char* KNOWN_SSID[] = {"DRW", "DRW.yellow", "ChrisnAimee.com"};
+constexpr const char* KNOWN_PASSWORD[] = {"wellington", "wellington", "carbondell"};
 constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 
 // Access Point credentials (if no known WiFi found)
-#define APNAME "DRWScale"
+#define APNAME "DRW LaunchScale"
 #define APPASS "wellington"
 
 
 // Load cell pins and calibration
 #define LOADCELL_DOUT_PIN 16
 #define LOADCELL_SCK_PIN 17
-
-// Tare button pin
-#define TARE_BUTTON_PIN 15
 
 // VBAT measurement pin (ADC input). Pin36 Labelled as VP
 #define VBAT_PIN 36
@@ -73,6 +70,12 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
     #error "Invalid DEVICE_ID specified."
 #endif
 
+// Tare button pin
+#ifdef ESPNOW_IS_PARENT
+  #define TARE_BUTTON_PIN 14 // normal scale pin 15. Parent 14 because broken
+#else
+  #define TARE_BUTTON_PIN 15 // normal scale pin 15. Parent 17 because broken
+#endif
 
 // Parent node MAC address (set on parent device)
 #define PARENT_MAC_ADDR  {0xa0, 0xdd, 0x6c, 0x02, 0xfb, 0xa4}
@@ -84,4 +87,7 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 
 // Board MAC address
 // Parent: a0:dd:6c:02:fb:a4
-// Child Grey/Yellow: a0:dd:6c:04:47:a8
+// Child Grey: a0:dd:6c:04:47:a8
+// Child Yellow: a0:dd:6c:04:47:ac
+// Child Purple: a0:dd:6c:04:47:ad
+// Child Black: a0:dd:6c:04:47:ae

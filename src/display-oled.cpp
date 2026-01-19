@@ -41,7 +41,7 @@ void displaysetup() {
 
 }
 
-void displayText(String message) {
+void displayText(String message, float voltage) {
 
   display.clearDisplay();
 
@@ -51,6 +51,7 @@ void displayText(String message) {
   display.cp437(true);         // Use full 256 char 'Code Page 437' font
 
   display.println(message);
+  drawBatteryIcon(voltage);
   display.display();
 }
 
@@ -58,12 +59,16 @@ void displayWeight(String weight, float voltage) {
   display.clearDisplay();
 
   // Draw weight on the left
-  display.setTextSize(3.5);
+  display.setTextSize(3);
   display.setTextColor(WHITE);
   display.setCursor(0, 0);
   display.print(weight);
   display.println("g");
+  drawBatteryIcon(voltage);
+  display.display();
+}
 
+void drawBatteryIcon(float voltage) {
   // Draw battery indicator in bottom-right (horizontal, compact)
   const int bw = 18; // battery body width
   const int bh = 8;  // battery body height
@@ -117,7 +122,5 @@ void displayWeight(String weight, float voltage) {
     display.setCursor(tx, y);
     display.print(vb);
   }
-
-  display.display();
 }
 

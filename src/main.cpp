@@ -94,7 +94,7 @@ void loop()
   // Check tare button every loop
   tareButtonState = digitalRead(TARE_BUTTON_PIN);
   debug("Tare Button State: ");
-  debug(tareButtonState);
+  debugln(tareButtonState);
   debug(" Last State: ");
   debugln(lastTareButtonState);
 
@@ -105,6 +105,10 @@ void loop()
       debugln("Tare performed locally on Child node");
     } else {
       // Parent node - broadcast tare command to all child nodes, max of 4
+      String tareMessage = "Taring all nodes...";
+      displayText(tareMessage, vbat);
+      Serial.println(tareMessage);
+           
       for (uint8_t nodeId = 1; nodeId <= 4; nodeId++) {
         debugln("Sending tare command to node " + String(nodeId));
         espnowSendTare(nodeId);
@@ -125,6 +129,8 @@ void loop()
     vbat = readVBAT();
     batteryReadCounter = 0;
     debugln("Battery Voltage: " + String(vbat, 2) + "v");
+    mainMessage = "http:\\\\" + String(WiFi.getHostname()) + "\nIP: " + WiFi.localIP().toString();
+    displayText(mainMessage, vbat); // update display with new voltage
   }
 
   delay(100);

@@ -73,7 +73,7 @@ bool checkValidSSID() {
         goodSSID = String(KNOWN_SSID[n]);
         wifiPass = String(KNOWN_PASSWORD[n]);
         return wifiFound;
-        // break; // break out of the loop
+        // break out of the loop
       } else {
         debug(F("\tNot matching "));
         debugln(KNOWN_SSID[n]);
@@ -96,16 +96,16 @@ void connectToWifi(String SSID) {
     while (WiFi.status() != WL_CONNECTED) {
       delay(1000);
     }
-    wifiMessage = "Connected to \n" + SSID;
+    wifiMessage = "Connected to \n" + SSID + "\nChannel: " + String(WiFi.channel());
     Serial.println(wifiMessage);
     displayText(wifiMessage);
-    delay(2000);
+    delay(1000);
 
     wifiMessage = "http:\\\\" + String(WiFi.getHostname()) + "\nIP: " + WiFi.localIP().toString();
     Serial.println(wifiMessage);
     displayText(wifiMessage);
-    delay(2000);
-    Serial.println("Wi-Fi Channel: " + String(WiFi.channel()));
+    delay(1000);
+    
 }
 
 String createWifi() {
@@ -118,7 +118,8 @@ String createWifi() {
   WiFi.mode(WIFI_AP);
   WiFi.softAP(APNAME, APPASS, 6, 0, 4); // channel 6, not hidden, max 4 connections
   IPAddress IP = WiFi.softAPIP();
-  String apMessage = "Created Wifi " + String(APNAME) + " with IP: " + IP.toString();
+  // String apMessage = "Wifi: " + String(APNAME) + "\nIP: " + IP.toString();
+  String apMessage = "Wifi: " + String(APNAME) + "\nPass: " + String(APPASS) + "\nIP: " + IP.toString();
   Serial.println(apMessage);
   displayText(apMessage);
   return APNAME;

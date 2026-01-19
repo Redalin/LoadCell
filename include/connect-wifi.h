@@ -3,7 +3,7 @@
 #define CONNECT_WIFI_H
 
 #include <WiFi.h>
-#include <WiFiClientSecure.h>
+// #include <WiFiClientSecure.h>
 #include <ESPmDNS.h>
 
 void initMDNS();
