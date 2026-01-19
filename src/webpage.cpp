@@ -4,6 +4,7 @@
 #include "settings.h"
 #include "espnow.h"
 #include "config.h"
+#include "pitbuttons.h"
 #include <map>
 #include <ArduinoJson.h>
 
@@ -22,12 +23,21 @@ void initwebservers(){
   server.addHandler(&ws);
 
   Serial.println("Starting Web Server");
+
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send(LittleFS, "/index.html", "text/html");
   });
   server.on("/favicon.png", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send(LittleFS, "/favicon.png", "image/png");
   });
+
+  // pitbuttons page
+  server.on("/pitbuttons", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send(LittleFS, "/pitbuttons/index.html", "text/html");
+  });
+
+  // Serve static files from pitbuttons directory
+  server.serveStatic("/pitbuttons/", LittleFS, "/pitbuttons/");
 
   // settings endpoints
   server.on("/settings", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -39,6 +49,7 @@ void initwebservers(){
     String s = settingsAsJson();
     request->send(200, "application/json", s);
   });
+
   // POST /settings with JSON body
   server.on("/settings", HTTP_POST, [](AsyncWebServerRequest *request){
     // ack will be sent from body handler
@@ -47,13 +58,13 @@ void initwebservers(){
     String body;
     body.reserve(total);
     body = String((const char*)data, len);
-    StaticJsonDocument<256> doc;
+    JsonDocument doc;
     DeserializationError err = deserializeJson(doc, body);
     if (err) { request->send(400, "application/json", "{\"error\":\"invalid json\"}"); return; }
-    if (doc.containsKey("name1")) settingsSetName(1, String((const char*)doc["name1"]));
-    if (doc.containsKey("name2")) settingsSetName(2, String((const char*)doc["name2"]));
-    if (doc.containsKey("color1")) settingsSetColor(1, String((const char*)doc["color1"]));
-    if (doc.containsKey("color2")) settingsSetColor(2, String((const char*)doc["color2"]));
+    if (!doc["name1"].isNull()) settingsSetName(1, String((const char*)doc["name1"]));
+    if (!doc["name2"].isNull()) settingsSetName(2, String((const char*)doc["name2"]));
+    if (!doc["color1"].isNull()) settingsSetColor(1, String((const char*)doc["color1"]));
+    if (!doc["color2"].isNull()) settingsSetColor(2, String((const char*)doc["color2"]));
     bool ok = settingsSave();
     if (ok) request->send(200, "application/json", "{\"status\":\"ok\"}"); else request->send(500, "application/json", "{\"error\":\"save failed\"}");
   });
@@ -65,7 +76,6 @@ void initwebservers(){
       if (request->hasArg("scale")) {
         which = request->arg("scale").toInt();
       }
-      else scaleTareAll();
       request->send(200, "application/json", "{\"status\":\"ok\"}");
     });
   }
@@ -77,7 +87,7 @@ void initwebservers(){
 }
 
 // Callback helper for building the children JSON object
-static StaticJsonDocument<512> *globalDoc = nullptr;
+static JsonDocument *globalDoc = nullptr;
 static bool dataChanged = false;
 
 static void addChildToJson(uint8_t childId, float weight) {
@@ -95,18 +105,18 @@ static void addChildToJson(uint8_t childId, float weight) {
 
 // Send current weight to all connected websocket clients as JSON
 static void notifyClients(){
-  StaticJsonDocument<1024> doc;
+  JsonDocument doc;
   
   // If parent node, only include child node data from ESP-NOW
   if (ESPNOW_IS_PARENT) {
     // Include child node data (add up to 5 child nodes). Each child is
     // sent as an object { "weight": <value>, "name": "hostname" }
     // Send children as an array of {id, weight, name} to avoid object key issues
-    JsonArray children = doc.createNestedArray("children");
+    JsonArray children = doc["children"].to<JsonArray>();
     for (uint8_t i = 1; i <= 5; i++) {
       float childWeight = espnowGetChildWeight(i);
       if (!isnan(childWeight)) {
-        JsonObject child = children.createNestedObject();
+        JsonObject child = children.add<JsonObject>();
         child["id"] = i;
         child["weight"] = childWeight;
         const char* hn = espnowGetChildName(i);
@@ -138,14 +148,20 @@ void webBroadcastLoop(){
   }
 }
 
+// WebSocket event handler
 void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
   if (type == WS_EVT_CONNECT) {
     // send immediate update when client connects
     notifyClients();
   } else if (type == WS_EVT_DATA) {
     // incoming message (assume simple text commands)
+    debugln("OnEvent WS_EVT_Data received");
+    debugln("Data is: " + String((char*)data));
+
+    handleWebSocketMessage(arg, data, len);
+    
     String msg = String((char*)data).substring(0, len);
-    Serial.println("WS Received: " + msg);
+    debugln("WS Received: " + msg);
     
     if (ESPNOW_IS_PARENT) {
       // Parent node: convert simple tare commands to child node commands
@@ -191,7 +207,7 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
 
 // send calibration result to clients (declared in header)
 void sendCalibrationResult(int which, float value, uint32_t clientId) {
-  StaticJsonDocument<128> doc;
+  JsonDocument doc;
   if (!isnan(value)) doc["calibrate"] = value; else doc["calibrate"] = nullptr;
   doc["scale"] = which;
   char buf[128]; size_t n = serializeJson(doc, buf);

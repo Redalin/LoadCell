@@ -7,7 +7,6 @@
 
 void initScale();
 void scaleTare(); // Tare the scale
-void scaleTareAll();  // Tare all scales (compatibility function)
 float scaleRead(); // Read from the scale
 float scaleDummyRead();  // For testing without scale
 float scaleCalibrate(); // Calibrate the scale

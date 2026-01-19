@@ -2,6 +2,9 @@
 #include "config.h"
 #include <Arduino.h>
 
+// Global battery voltage variable (defined here, declared as extern in config.h)
+float vbat = 0.0;
+
 // Optional: smoothing
 float readAveragedMilliVolts(int pin, int samples) {
   float sum = 0;

@@ -42,13 +42,13 @@ void initWifi() {
 int scanForWifi() {
   wifiMessage = "Scan for WiFi...";
   Serial.println(wifiMessage);
-  displayText(wifiMessage);
+  displayText(wifiMessage, vbat);
   
   visibleNetworks = WiFi.scanNetworks();
   
   wifiMessage = "Wifi scan done - " + String(visibleNetworks) + " networks found";
-  displayText(wifiMessage);
   Serial.println(wifiMessage);
+  displayText(wifiMessage, vbat);
   
   return visibleNetworks;
 }
@@ -90,7 +90,7 @@ void connectToWifi(String SSID) {
   WiFi.mode(WIFI_STA);
   wifiMessage = "Connecting to \n" + SSID;
   Serial.println(wifiMessage);
-  displayText(wifiMessage);
+  displayText(wifiMessage, vbat);
 
     WiFi.begin(SSID, wifiPass);
     while (WiFi.status() != WL_CONNECTED) {
@@ -98,12 +98,12 @@ void connectToWifi(String SSID) {
     }
     wifiMessage = "Connected to \n" + SSID + "\nChannel: " + String(WiFi.channel());
     Serial.println(wifiMessage);
-    displayText(wifiMessage);
+    displayText(wifiMessage, vbat);
     delay(1000);
 
     wifiMessage = "http:\\\\" + String(WiFi.getHostname()) + "\nIP: " + WiFi.localIP().toString();
     Serial.println(wifiMessage);
-    displayText(wifiMessage);
+    displayText(wifiMessage, vbat);
     delay(1000);
     
 }
@@ -112,7 +112,7 @@ String createWifi() {
 
   wifiMessage = "Creating Access Point\n" + String(APNAME);
   Serial.println(wifiMessage);
-  displayText(wifiMessage);
+  displayText(wifiMessage, vbat);
 
   WiFi.persistent(false);
   WiFi.mode(WIFI_AP);
@@ -121,6 +121,6 @@ String createWifi() {
   // String apMessage = "Wifi: " + String(APNAME) + "\nIP: " + IP.toString();
   String apMessage = "Wifi: " + String(APNAME) + "\nPass: " + String(APPASS) + "\nIP: " + IP.toString();
   Serial.println(apMessage);
-  displayText(apMessage);
+  displayText(apMessage, vbat);
   return APNAME;
 }

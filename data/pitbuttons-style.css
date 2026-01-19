@@ -1,0 +1,238 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.team-section {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 90%;
+}
+
+.box {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    margin: 10px;
+    padding: 5px;
+    width: 100px;
+    text-align: center;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown {
+    width: 70%; /* Reduce width */
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+button {
+    padding: 5px 20px;
+    border: 1px solid #007BFF;
+    border-radius: 4px;
+    background-color: #007BFF;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 4px #0056b3;
+    transition: all 0.2s ease;
+}
+
+button:active {
+    box-shadow: 0 2px #0056b3;
+    transform: translateY(2px);
+}
+
+button:disabled {
+    background-color: #ccc;
+    color: #666;
+    border: 0px;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: translateY(2px);
+}
+
+.TeamNameSelect-section {
+    display: flex;
+    background-color: #bbfff7;
+    border-color: black;
+    border-radius: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 95%;
+    margin-top: 20px;
+}
+
+.TeamNameSelect-section h2, .collapsible {
+    width: 100%;
+    color: black;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.TeamNameSelect-section .box {
+    background-color: antiquewhite;
+    flex: 0 0 250px;
+    margin: 10px;
+    width: 200px;
+}
+
+@media (max-width: 600px) {
+    .team-section .box {
+        width: 100%;
+        margin: 5px 0;
+    }
+
+    .TeamNameSelect-section {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .TeamNameSelect-section .box {
+        width: 100%;
+        max-width: 300px;
+    }
+}
+
+/* Add this for better handling on small screens */
+@media (max-width: 880px) {
+    .extraAdmin-section {
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+    .obsSettings {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .obsSettings button {
+        width: 100%;
+        margin-bottom: 8px;
+        box-sizing: border-box;
+    }
+}
+
+.extraAdmin-section {
+    display: flex;
+    flex-wrap: wrap;
+    border-radius: 10px;
+    background-color: #ffb26a;
+    justify-content: center;
+    width: 95%;
+    margin-top: 20px; 
+    overflow: hidden;
+    max-height: 0;
+    height: auto;
+    transition: max-height 0.2s ease-out;
+    flex-grow: calc();
+    bottom: 5px;
+}
+
+.collapsible {
+    background-color: #eee;
+    color: black;
+    cursor: pointer;
+    padding: 20px;
+    width: 40%;
+    border: black;
+    text-align: center;
+    outline: 1px;
+    font-size: 20px;
+    font-weight: bold;
+    box-shadow: none;
+    transition: none;
+}
+
+.active,
+.collapsible:hover {
+    background-color: #ccc;
+}
+
+.collapsible:active {
+    box-shadow: 0 2px #ddecfc;
+}
+
+.collapsible:after {
+    content: '\25B6'; /* Unicode character for a right-pointing triangle (expander arrow) */
+    font-size: 13px;
+    /* color: darkgrey; */
+    float: right;
+    margin-left: 5px;
+}
+
+.active:after {
+    content: "\25BC"; /* Unicode character for a down-pointing triangle (collapse arrow) */
+}
+
+.extraAdmin-section .countdownSlider, .customMessage, .team-names-list, .colourPickers, .speechPicker, .muteButton, .obsSettings {
+    border: 1px solid #7c7c7c; 
+    border-radius: 10px; 
+    background-color: #f9f9f9; 
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+    margin: 5px; 
+    color: #666;
+    text-align: center;
+    min-width: 380px;
+}
+
+.extraAdmin-section .custom-message input {
+    margin: 5px;
+    border-radius: 5px;
+    padding: 5px;
+    width: 80%;
+    border: 1px solid #ccc; 
+} 
+
+.version {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    color: #666;
+}
+
+.connection-status {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    display: flex;
+    align-items: center;
+    color: #666;
+}
+
+.status-indicator {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+.disconnected {
+    background-color: red;
+}
+
+.connected {
+    background-color: green;
+}
+
+.drag-handle {
+    cursor: move;
+    background-color: #f9f9f9;
+}
+
+#teamNamesTable td {
+    padding: 10px;
+    border: 10px;
+    border-right: 0px;
+    border-left: 0px;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+}
+
+.team-names-list button {
+    padding: 3px;
+}

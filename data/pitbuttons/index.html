@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DRW</title>
+    <link rel="stylesheet" href="pitbuttons-style.css">
+    <link rel="icon" type="image/png" href="favicon.png">
+</head>
+<body>
+    <div class="team-section">
+        <div class="box" id="team1">
+            <p class="team-name">Team 1</p>
+        </div>
+        <div class="box" id="team2">
+            <p class="team-name">Team 2</p>
+        </div>
+        <div class="box" id="team3">
+            <p class="team-name">Team 3</p>
+        </div>
+        <div class="box" id="team4">
+            <p class="team-name">Team 4</p>
+        </div>
+    </div>
+
+    <div class="TeamNameSelect-section" id="TeamNameSelect-section">
+        <h2>Team Names Select</h2>
+        <br>
+        <div class="box">
+            <h3>Team 1</h3>
+            <select class="dropdown" id="team1Dropdown" onchange="updateTeamName(this, 'team1')"></select>
+            <button id="pilotSwapButton1" onclick="pilotSwapStart('team1', this.id)">Announce</button>   
+        </div>
+        <div class="box">
+            <h3>Team 2</h3>
+            <select class="dropdown" id="team2Dropdown" onchange="updateTeamName(this, 'team2')"></select>
+            <button id="pilotSwapButton2" onclick="pilotSwapStart('team2', this.id)">Announce</button>
+        </div>
+        <div class="box">
+            <h3>Team 3</h3>
+            <select class="dropdown" id="team3Dropdown" onchange="updateTeamName(this, 'team3')"></select>
+            <button id="pilotSwapButton3" onclick="pilotSwapStart('team3', this.id)">Announce</button>
+        </div>
+        <div class="box">
+            <h3>Team 4</h3>
+            <select class="dropdown" id="team4Dropdown" onchange="updateTeamName(this, 'team4')"></select>
+            <button id="pilotSwapButton4" onclick="pilotSwapStart('team4', this.id)">Announce</button>
+        </div>
+    </div>
+    <div class="team-names-list">
+        <h3>Team Names</h3>
+        <table id="teamNamesTable">
+            <tbody id="teamNamesTableBody">
+                <!-- Rows will be dynamically generated here -->
+            </tbody>
+        </table>
+        <button onclick="addTeamName()">Add Team</button>
+        <button onclick="saveTeamNames()">Save</button>
+        <button onclick="getTeamNames()">Reload</button>
+    </div>
+    <p></p>
+    <button type="button" class="collapsible">Extra Admin Section</button>
+    <div class="extraAdmin-section" id="extraAdmin-section">
+        <div class="countdownSlider">
+            <p>Update the countdown for an Announcement</p>
+            <div class="slider-container">
+                <button onclick="adjustCountdown(-1)">-</button>
+                <input type="range" id="countdownSlider" min="5" max="100" step="1" value="20"
+                    oninput="updateCountdownDisplay(this.value)">
+                <button onclick="adjustCountdown(1)">+</button>
+                <br>
+                <span id="countdownDisplay">20</span> seconds
+            </div>
+            <button onclick="updateCountdownTimer(parseInt(document.getElementById('countdownSlider').value, 10))">Save</button>
+        </div>
+    
+        <!-- Add input field for custom announcement message -->
+        <div class="customMessage">
+            <p>Enter the announcement message:</p>
+            <p>Before message: <input id="customMessageBefore" placeholder="" /></p>
+            <p>Team Name</p>
+            <p>After message: <input id="customMessageAfter" placeholder="" /></p>
+            <button onclick="saveCustomAnnouncements()">Save</button>
+        </div>
+        <div class="colourPickers">
+            <p>Pick a background colour for the boxes:</p>
+            <div class="colourPicker">
+                <label>Team Names Select</label>
+                <input type="color" id="TeamNameSelect-section-colour" value="#bbfff7" onchange="updateBGColour('TeamNameSelect-section', this.value)">
+            </div>
+            <div class="colourPicker">
+                <label for="extraAdminColour">Extra Admin Section</label>
+                <input type="color" id="extraAdmin-colour" value="#ffb26a" onchange="updateBGColour('extraAdmin-section', this.value)">
+            </div>
+        </div>
+        <div class="speechPicker">
+            <p>Pick a voice for the announcements:</p>
+            <select id="speechPicker"></select>
+        </div>
+        <div class="muteButton">
+            <p>Mute the announcements</p>
+            <button id="muteButton" onclick="toggleMute()">🔊</button>
+        </div>
+    </div> 
+
+    <div class=version>Version 1.3.5</div>
+    <div class="connection-status">
+        <div class="status-indicator disconnected" id="connectionStatusIndicator"></div>
+        <span id="connectionStatusText">Disconnected</span>
+    </div>
+    <script src="pitbuttons-script.js"></script>
+</body>
+</html>

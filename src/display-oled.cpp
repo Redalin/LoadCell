@@ -34,10 +34,10 @@ void displaysetup() {
   // the library initializes this with an Adafruit splash screen.
   Serial.println(F("Initializing OLED display"));  
   display.display();
-  delay(2000); // Pause for 2 seconds
+  delay(1000); // Pause for 2 seconds
 
   // Clear the screen and prepare for drawing lines
-  displayText(textMessage);
+  display.clearDisplay();
 
 }
 
@@ -45,7 +45,7 @@ void displayText(String message, float voltage) {
 
   display.clearDisplay();
 
-  display.setTextSize(1.5);      // Normal 1:1 pixel scale
+  display.setTextSize(1);      // Normal 1:1 pixel scale
   display.setTextColor(WHITE); // Draw white text
   display.setCursor(0, 0);     // Start top left corner
   display.cp437(true);         // Use full 256 char 'Code Page 437' font

@@ -8,6 +8,7 @@
 #include "display-oled.h"
 #include "espnow.h"
 #include "battery.h"
+#include "pitbuttons.h"
 
 
 
@@ -20,14 +21,15 @@ static int batteryReadCounter = 0;  // Counter for battery reading
 static int scaleReadCounter = 0;    // Counter for scale reading
 static int tareButtonState = HIGH; // default state of the tare button
 
-float vbat = 0; // Initial definition of battery voltage
-
 void setup()
 {
   Serial.begin(115200);
 
   // initialise the LittleFS
   initLittleFS();
+
+  // get an initial vbat reading
+  vbat = readVBAT();
 
   // initialise the OLED display
   displaysetup();
@@ -39,16 +41,15 @@ void setup()
   analogSetPinAttenuation(VBAT_PIN, ADC_0db);
   analogReadResolution(12);
 
-  // Ok even the Child nodes need Wifi
-
-    // Only parent need to initialise:
-    // - Wifi and mDNS
-    // - websocket
-    // - web server
+  // Only parent need to initialise:
+  // - Wifi and mDNS
+  // - websocket
+  // - web server
   if (ESPNOW_IS_PARENT) {
     initWifi();
     initMDNS();
     initwebservers();
+    initpitbuttons();
   } else {
     // We are a Child node so initialise the scale only
     initScale();
@@ -60,37 +61,56 @@ void setup()
   // load persisted settings
   settingsInit();
 
-  // get an initial vbat reading
-  vbat = readVBAT();
-
 }
 
 void loop()
 {
-  // broadcast weight to connected web clients (parent only)
+  // Get the current time
+  unsigned long currentTime = millis();
+  
+  
   if (ESPNOW_IS_PARENT) {
+    // broadcast weight to connected web clients (parent only)
     webBroadcastLoop();
+
+    // Update countdown timers every second
+    for (int i = 0; i < NUM_LANES; i++) {
+      if (buttonStates[i].countdown > 0 && (currentTime - countdownTimers[i]) >= 1000) {
+        buttonStates[i].countdown--;
+        countdownTimers[i] = currentTime;
+        notifyButtonClients();
+      }
+    }
+    // Check lane switches every 50 ms to debounce
+    if (currentTime - lastCheckTime > 50) {
+      lastCheckTime = currentTime;
+      checkLaneSwitches();
+    }
+
   } else {
     // Child node: read scale and send weight to parent every 500ms
-    if (++scaleReadCounter >= 5) { // 5 * 100ms = 500ms
-      scaleReadCounter = 0;
-      float reading = scaleRead();  // Read from primary scale
-      if (!isnan(reading)) {
-        espnowSendWeight(reading);
+    if (currentTime - lastCheckTime > 500) { 
+      lastCheckTime = currentTime;
 
-        mainMessage = String(reading, 1);
-        displayWeight(mainMessage, vbat); // print weight and battery to OLED
-      }
-
-      // Check for pending tare commands
+      // Check for pending remote tare commands
       uint8_t tareCmd = espnowGetPendingTareCommand();
       if (tareCmd != 0) {
         debugln("Performing pending tare command");
         scaleTare();
         // optional: send ack back (not implemented)
       }
+
+      float reading = scaleRead();  // Read from scale
+      if (!isnan(reading)) {
+        espnowSendWeight(reading);
+
+        mainMessage = String(reading, 1);
+        displayWeight(mainMessage, vbat); // print weight and battery to OLED
+      }
     }
   }
+
+  // All nodes
   // Check tare button every loop
   tareButtonState = digitalRead(TARE_BUTTON_PIN);
   debug("Tare Button State: ");
