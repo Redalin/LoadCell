@@ -4,6 +4,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+// blah blah blah
 // Global battery voltage variable
 extern float vbat;
 
