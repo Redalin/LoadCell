@@ -9,6 +9,7 @@
 #include "espnow.h"
 #include "battery.h"
 #include "pitbuttons.h"
+#include <ElegantOTA.h>
 
 
 
@@ -50,6 +51,7 @@ void setup()
     initMDNS();
     initwebservers();
     initpitbuttons();
+    ElegantOTA.begin(&server);
   } else {
     // We are a Child node so initialise the scale only
     initScale();
@@ -86,6 +88,7 @@ void loop()
       lastCheckTime = currentTime;
       checkLaneSwitches();
     }
+    ElegantOTA.loop();
 
   } else {
     // Child node: read scale and send weight to parent every 500ms

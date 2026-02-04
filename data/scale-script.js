@@ -11,6 +11,7 @@
   const childGraphs = new Map();
   const MAX_CHILD_GRAPHS = 4;
   const CHILD_TIMEOUT_MS = 5 * 60 * 1000; // remove after 5 minutes of no data
+  const MAX_DATA_TIMEOUT = 10000; // 10 seconds without data = show 0 on graph
 
   // Load persisted child names/colors from localStorage
   const persistedChildNames = JSON.parse(localStorage.getItem('childNames') || '{}');
@@ -292,7 +293,7 @@
   tareAllBtn.addEventListener('click', () => {
     if (ws && ws.readyState === WebSocket.OPEN) {
       // Parent mode: loop through all possible child nodes
-      for (let i = 1; i <= 10; i++) {
+      for (let i = 1; i <= 5; i++) {
         ws.send('tare:' + i);
       }
       setStatus('Tare all sent');
@@ -382,8 +383,22 @@
   function drawAll() {
     // draw dynamic child graphs only
     childGraphs.forEach((g, id) => {
-      drawGraph(g.canvas, g.ctx, g.data, g.color || '#0077cc');
       try {
+        const now = Date.now();
+        // If no data has been received from this child for a time, append a 0 value so
+        // the graph and displayed weight update to 0.
+        if ((now - (g.lastSeen || 0)) > MAX_DATA_TIMEOUT) {
+          const lastPoint = g.data.length ? g.data[g.data.length - 1] : null;
+          // Only append a zero if the last data point isn't already a recent 0
+          if (!lastPoint || lastPoint.v !== 0 || (now - lastPoint.t) > 2000) {
+            g.data.push({ t: now, v: 0 });
+          }
+        }
+        // Trim old points to the current window
+        const cutoff = Date.now() - WINDOW_MS;
+        while (g.data.length && g.data[0].t < cutoff) g.data.shift();
+
+        drawGraph(g.canvas, g.ctx, g.data, g.color || '#0077cc');
         const titleEl = g.titleEl || g.container.querySelector('.dgTitleRow div');
         if (titleEl) titleEl.textContent = (g.name || ('Node ' + id));
         // update current weight display

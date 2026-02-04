@@ -165,26 +165,15 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
     
     if (ESPNOW_IS_PARENT) {
       // Parent node: convert simple tare commands to child node commands
-      // tare -> tare all children (not implemented, ignore)
-      // tare:X -> send to child node X, scale 1
-      // tare:child:nodeId -> send to child node
-      // tare:child:nodeId:scale -> send to child node with specific scale
+      // tare -> tare all nodes
+      // tare:X -> send to node X
       
       if (msg == "tare") {
         // Tare all - not implemented for parent mode (parent has no local scales)
         Serial.println("Tare all ignored (parent has no local scales)");
         notifyClients();
-      } else if (msg.startsWith("tare:child:")) {
-        // Parse: "tare:child:nodeId" or "tare:child:nodeId:scale"
-        String remainder = msg.substring(11);  // Skip "tare:child:"
-        uint8_t nodeId = remainder.toInt(); // Get nodeId from final value after last colon
-        
-        Serial.print("Sending tare command to node ");
-        Serial.println(nodeId);
-        espnowSendTare(nodeId);
-        notifyClients();
       } else if (msg.startsWith("tare:")) {
-        // Simple format: tare:nodeId -> send to child node with scale 1
+        // Simple format: tare:X -> send to child nodeId X
         uint8_t nodeId = msg.substring(5).toInt();
         Serial.print("Sending tare command to child node ");
         Serial.print(nodeId);
