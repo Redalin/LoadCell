@@ -7,6 +7,7 @@
 #include "pitbuttons.h"
 #include <map>
 #include <ArduinoJson.h>
+#include "nodeConfig.h"
 
 
 AsyncWebSocket ws("/ws");
@@ -44,6 +45,22 @@ void initwebservers(){
     String s = settingsAsJson();
     request->send(200, "application/json", s);
   });
+
+  // node ID endpoint for runtime configuration
+  server.on("/nodeid", HTTP_GET, [](AsyncWebServerRequest *request){
+    String resp = "{\"id\":" + String(deviceId) + "}";
+    request->send(200, "application/json", resp);
+  });
+  server.on("/nodeid", HTTP_POST, [](AsyncWebServerRequest *request){
+    if (request->hasArg("id")) {
+      uint8_t newId = request->arg("id").toInt();
+      saveNodeId(newId);
+      String resp = "{\"status\":\"ok\",\"id\":" + String(deviceId) + "}";
+      request->send(200, "application/json", resp);
+    } else {
+      request->send(400, "application/json", "{\"error\":\"missing id\"}");
+    }
+  });
   server.on("/settings/reset", HTTP_POST, [](AsyncWebServerRequest *request){
     settingsResetDefaults();
     String s = settingsAsJson();
@@ -70,7 +87,7 @@ void initwebservers(){
   });
 
   // provide a simple HTTP endpoint to tare the scale (child nodes only)
-  if (!ESPNOW_IS_PARENT) {
+  if (!espnowIsParent) {
     server.on("/tare", HTTP_POST, [](AsyncWebServerRequest *request){
       int which = 0;
       if (request->hasArg("scale")) {
@@ -108,7 +125,7 @@ static void notifyClients(){
   JsonDocument doc;
   
   // If parent node, only include child node data from ESP-NOW
-  if (ESPNOW_IS_PARENT) {
+  if (espnowIsParent) {
     // Include child node data (add up to 5 child nodes). Each child is
     // sent as an object { "weight": <value>, "name": "hostname" }
     // Send children as an array of {id, weight, name} to avoid object key issues
@@ -163,7 +180,7 @@ void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType 
     String msg = String((char*)data).substring(0, len);
     debugln("WS Received: " + msg);
     
-    if (ESPNOW_IS_PARENT) {
+    if (espnowIsParent) {
       // Parent node: convert simple tare commands to child node commands
       // tare -> tare all nodes
       // tare:X -> send to node X

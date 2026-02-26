@@ -9,6 +9,7 @@
 #include "espnow.h"
 #include "battery.h"
 #include "pitbuttons.h"
+#include "nodeConfig.h"
 #include <ElegantOTA.h>
 
 
@@ -27,6 +28,9 @@ void setup()
 {
   Serial.begin(115200);
 
+  // load node-specific configuration (deviceId, hostName, etc.)
+  loadNodeConfig();
+
   // initialise the LittleFS
   initLittleFS();
 
@@ -37,17 +41,19 @@ void setup()
   displaysetup();
 
   // configure tare button pin (use internal pullup so LOW means pressed)
-  pinMode(TARE_BUTTON_PIN, INPUT_PULLUP);
+  pinMode(tareButtonPin, INPUT_PULLUP);
 
   // configure VBAT ADC pin
   analogSetPinAttenuation(VBAT_PIN, ADC_0db);
   analogReadResolution(12);
 
+  configMode(); // check if we should enter config mode (hold tare button on boot)
+  
   // Only parent need to initialise:
   // - Wifi and mDNS
   // - websocket
   // - web server
-  if (ESPNOW_IS_PARENT) {
+  if (espnowIsParent) {
     initWifi();
     initMDNS();
     initwebservers();
@@ -74,7 +80,7 @@ void loop()
   unsigned long currentTime = millis();
   
   
-  if (ESPNOW_IS_PARENT) {
+  if (espnowIsParent) {
     // broadcast weight to connected web clients (parent only)
     webBroadcastLoop();
 
@@ -123,7 +129,7 @@ void loop()
   // Check tare button every loop
   if(checkTareButton()) {
     debugln("Tare button is currently pressed");
-    if (!ESPNOW_IS_PARENT) {
+    if (!espnowIsParent) {
       scaleTare(); // send tare command to local node
       debugln("Tare performed locally on Child node");
     } else {

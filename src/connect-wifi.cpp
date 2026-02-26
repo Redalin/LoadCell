@@ -11,7 +11,7 @@ String wifiMessage;
 
 void initMDNS() {
     // Initialize mDNS
-    if (!MDNS.begin(HOSTNAME))
+    if (!MDNS.begin(hostName))
     { // Set the hostname
         Serial.println("Error setting up MDNS responder!");
         while (1)
@@ -23,7 +23,7 @@ void initMDNS() {
 }
 
 void initWifi() {
-  WiFi.setHostname(HOSTNAME);
+  WiFi.setHostname(hostName);
   // Scan for known wifi Networks
   // int networks = scanForWifi();
   if (scanForWifi() > 0 && checkValidSSID()) {

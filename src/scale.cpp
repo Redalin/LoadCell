@@ -24,7 +24,7 @@ void initScale() {
     scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
 
     // Check if tare button is pressed during init to perform Calibration
-    int tareBtnState = digitalRead(TARE_BUTTON_PIN);
+    int tareBtnState = digitalRead(tareButtonPin);
     if (tareBtnState == LOW) {
         scaleMessage = "Calibration Mode!";
         displayText(scaleMessage, vbat);
@@ -43,7 +43,7 @@ void initScale() {
     if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
     // mutex for performance in case called from multiple tasks
     
-    scale.set_scale(CALIBRATION_FACTOR);
+    scale.set_scale(calibrationFactor);
     if (scale.wait_ready_timeout(500)) {
         scale.tare();  // Reset the scale to 0 on initialization
     } else {
@@ -108,7 +108,7 @@ bool checkTareButton() {
   static unsigned long lastTarePressTime = 0;  // Track last successful tare press
   const unsigned long DEBOUNCE_DELAY = 2000;     // ms debounce delay
   
-  bool tareButtonState = digitalRead(TARE_BUTTON_PIN);
+  bool tareButtonState = digitalRead(tareButtonPin);
   unsigned long currentTime = millis();
   
   // return true if button is currently pressed (active LOW) and was not pressed in the last check (to detect new presses)
