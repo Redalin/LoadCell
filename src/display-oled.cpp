@@ -13,12 +13,16 @@
 #include <Adafruit_SSD1306.h>
 #include <math.h>
 #include "display-oled.h"
-// #include <WiFi.h>
+#include <WiFi.h>
 
 // OLED display object
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 String textMessage = "Set up OLED...";
+
+// State tracking for temporary messages
+static unsigned long lastTempMessageTime = 0;
+static bool isTempMessage = false;
 
 void displaysetup() {
 
@@ -42,7 +46,6 @@ void displaysetup() {
 }
 
 void displayText(String message, float voltage) {
-
   display.clearDisplay();
 
   display.setTextSize(1);      // Normal 1:1 pixel scale
@@ -53,6 +56,50 @@ void displayText(String message, float voltage) {
   display.println(message);
   drawBatteryIcon(voltage);
   display.display();
+  
+  isTempMessage = false;  // regular displayText doesn't reset to default
+}
+
+void displayTextTemporary(String message, float voltage) {
+  display.clearDisplay();
+
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 0);
+  display.cp437(true);
+
+  display.println(message);
+  drawBatteryIcon(voltage);
+  display.display();
+  
+  lastTempMessageTime = millis();
+  isTempMessage = true;  // mark as temporary so it reverts after 10s
+}
+
+void displayDefaultParent(float voltage) {
+  display.clearDisplay();
+
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 0);
+  display.cp437(true);
+
+  String hostname = String(WiFi.getHostname());
+  String ip = WiFi.localIP().toString();
+  
+  display.println("http://" + hostname);
+  display.println("IP: " + ip);
+  drawBatteryIcon(voltage);
+  display.display();
+  
+  isTempMessage = false;
+}
+
+void updateParentDisplay(float voltage) {
+  // If a temporary message is displayed and 10 seconds have passed, revert to default
+  if (isTempMessage && (millis() - lastTempMessageTime >= 10000)) {
+    displayDefaultParent(voltage);
+  }
 }
 
 void displayWeight(String weight, float voltage) {

@@ -15,7 +15,10 @@
 
 void displaysetup();
 void displayText(String message, float voltage = NAN);
+void displayTextTemporary(String message, float voltage = NAN);
 void drawBatteryIcon(float voltage);
 // `voltage` is the measured battery voltage (single cell):
 // 2.8V = empty, 4.2V = full. If voltage >= ~4.9V treat as external USB (show bolt).
 void displayWeight(String weight, float voltage = NAN);
+void displayDefaultParent(float voltage = NAN);
+void updateParentDisplay(float voltage = NAN);
