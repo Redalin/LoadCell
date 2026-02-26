@@ -106,7 +106,7 @@ float scaleCalibrate() {
 // Check tare button state with debouncing and return true if pressed (called from main loop)
 bool checkTareButton() {
   static unsigned long lastTarePressTime = 0;  // Track last successful tare press
-  const unsigned long DEBOUNCE_DELAY = 2000;     // 500ms debounce delay
+  const unsigned long DEBOUNCE_DELAY = 2000;     // ms debounce delay
   
   bool tareButtonState = digitalRead(TARE_BUTTON_PIN);
   unsigned long currentTime = millis();
