@@ -26,8 +26,7 @@ extern float vbat;
 constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 
 // Access Point credentials (if no known WiFi found)
-#define APNAME "ap-name-ssid"
-#define APPASS "ap-password"
+// update these in secrets.h
 
 
 // Load cell pins and calibration
@@ -61,7 +60,7 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 #elif DEVICE_ID == 2 // Second Child node ID
   #define ESPNOW_IS_PARENT 0
   #define HOSTNAME "Grey"
-  #define CALIBRATION_FACTOR 1979.4
+  #define CALIBRATION_FACTOR -2063.8
 #elif DEVICE_ID == 3 // Third Child node ID
   #define ESPNOW_IS_PARENT 0
   #define HOSTNAME "Purple"
@@ -69,16 +68,16 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 #elif DEVICE_ID == 4 // Fourth Child node ID
   #define ESPNOW_IS_PARENT 0
   #define HOSTNAME "Black"
-  #define CALIBRATION_FACTOR 1106.69
+  #define CALIBRATION_FACTOR 1054.42
 #else 
     #error "Invalid DEVICE_ID specified."
 #endif
 
 // Tare button pin
-#ifdef ESPNOW_IS_PARENT
+#if ESPNOW_IS_PARENT
   #define TARE_BUTTON_PIN 14 // normal scale pin 15. Parent 14 because 15 is broken on my ESP32
 #else
-  #define TARE_BUTTON_PIN 15 // normal scale pin 15. Parent 17 because broken
+  #define TARE_BUTTON_PIN 15 // normal scale pin 15.
 #endif
 
 // Data transmission interval

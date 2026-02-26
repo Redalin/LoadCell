@@ -152,8 +152,9 @@ void loop()
     vbat = readVBAT();
     batteryReadCounter = 0;
     debugln("Battery Voltage: " + String(vbat, 2) + "v");
-    mainMessage = "http:\\\\" + String(WiFi.getHostname()) + "\nIP: " + WiFi.localIP().toString();
-    displayText(mainMessage, vbat); // update display with new voltage
+    // mainMessage = "http:\\\\" + String(WiFi.getHostname()) + "\nIP: " + WiFi.localIP().toString();
+    // displayText(mainMessage, vbat); // update display with new voltage
+    // removed as vbat is a global update
   }
 
   delay(100);

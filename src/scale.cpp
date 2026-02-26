@@ -105,7 +105,33 @@ float scaleCalibrate() {
 void scaleTare() {
     if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
     Serial.println("Tare scale...");
-    if (scale.wait_ready_timeout(500)) scale.tare(); else Serial.println("HX711 not found.");
+    if (scale.wait_ready_timeout(500)) {
+        scaleMessage = "TARE in 3";
+        displayText(scaleMessage, vbat);
+        Serial.println(scaleMessage);
+        delay(500);
+
+        scaleMessage = "TARE in 2";
+        displayText(scaleMessage, vbat);
+        Serial.println(scaleMessage);
+        delay(500);
+
+        scaleMessage = "TARE in 1";
+        displayText(scaleMessage, vbat);
+        Serial.println(scaleMessage);
+        delay(500);    
+
+        scale.tare(); 
+        
+        scaleMessage = "TARE Done";
+        displayText(scaleMessage, vbat);
+        Serial.println(scaleMessage);
+        delay(500);
+
+        
+    } else {
+        Serial.println("HX711 not found.");
+    }
     Serial.println("Tare done...");
     if (scaleMutex) xSemaphoreGive(scaleMutex);
 }
