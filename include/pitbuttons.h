@@ -1,5 +1,5 @@
-#ifndef PITWEB_H
-#define PITWEB_H
+#ifndef PITBUTTONS_H
+#define PITBUTTONS_H
 
 // Removing the Pitcaller stuff into another file also
 #include <ESPAsyncWebServer.h>
@@ -44,4 +44,4 @@ void updateCountdownTimer(int timer);
 void checkLaneSwitches();
 void cleanupWebClients();
 
-#endif  // PITWEB_H
+#endif  // PITBUTTONS_H

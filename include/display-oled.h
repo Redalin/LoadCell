@@ -6,6 +6,8 @@
   Adafruit invests time and resources providing this open source code, please support Adafruit and open-source hardware by purchasing products from Adafruit!
   Written by Limor Fried/Ladyada for Adafruit Industries, with contributions from the open source community. BSD license, check license.txt for more information All text above, and the splash screen below must be included in any redistribution.
 *********/
+#ifndef DISPLAY_OLED_H
+#define DISPLAY_OLED_H
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
@@ -22,3 +24,5 @@ void drawBatteryIcon(float voltage);
 void displayWeight(String weight, float voltage = NAN);
 void displayDefaultParent(float voltage = NAN);
 void updateParentDisplay(float voltage = NAN);
+
+#endif  // DISPLAY_OLED_H

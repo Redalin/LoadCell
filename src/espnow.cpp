@@ -7,6 +7,7 @@
 // Map to store child node weights: childId -> weight
 static std::map<uint8_t, float> childWeights;
 static std::map<uint8_t, String> childNames;
+static std::map<uint8_t, uint8_t*> childMacs;  // childId -> MAC address (6 bytes)
 static uint8_t nodeId = 0;  // This device's ID (set on child nodes)
 static uint8_t pendingTareCommand = 0;  // Pending tare command (scale number, 0 = none)
 
@@ -20,7 +21,7 @@ void espnowInit() {
   // Initialize WiFi in station mode (required for ESP-NOW)
   WiFi.mode(WIFI_STA);
 
-  if (!ESPNOW_IS_PARENT) {
+  if (!espnowIsParent) {
     // Child nodes can set a static channel if needed
     WiFi.channel(ESPNOW_CHANNEL);
     esp_wifi_set_channel(ESPNOW_CHANNEL, WIFI_SECOND_CHAN_NONE);
@@ -45,7 +46,7 @@ void espnowInit() {
   
   Serial.print("ESP-NOW initialized. Mode: ");
   
-  if (ESPNOW_IS_PARENT) {
+  if (espnowIsParent) {
     Serial.println("PARENT");
     // Parent node doesn't need to add itself as a peer
     // Child nodes will be added when they pair
@@ -64,7 +65,7 @@ void espnowInit() {
   } else {
     Serial.println("CHILD");
     Serial.print("Node ID: ");
-    Serial.println(DEVICE_ID);
+    Serial.println(deviceId);
     Serial.print("Child Wifi Channel: ");
     Serial.println(ESPNOW_CHANNEL);
     
@@ -116,7 +117,7 @@ void espnowOnRecv(const uint8_t *mac_addr, const uint8_t *data, int len) {
   if (len == sizeof(ESPNowData)) {
     ESPNowData *payload = (ESPNowData *)data;
     
-    if (ESPNOW_IS_PARENT) {
+    if (espnowIsParent) {
       // Parent receiving data from child
       if (payload->type == MSG_TYPE_WEIGHT) {
         Serial.print("Received from node ");
@@ -133,6 +134,29 @@ void espnowOnRecv(const uint8_t *mac_addr, const uint8_t *data, int len) {
         if (payload->name[0] != '\0') {
           childNames[payload->id] = String(payload->name);
         }
+        // Store the MAC address of this child node for targeted commands
+        auto it = childMacs.find(payload->id);
+        if (it == childMacs.end()) {
+          // First time seeing this node, allocate and store MAC
+          uint8_t* macAddr = new uint8_t[6];
+          memcpy(macAddr, mac_addr, 6);
+          childMacs[payload->id] = macAddr;
+          Serial.print("Registered child node "); Serial.print(payload->id); Serial.println(" MAC");
+          
+          // Also add this child as a peer so we can send targeted commands
+          esp_now_peer_info_t peerInfo = {};
+          memcpy(peerInfo.peer_addr, macAddr, 6);
+          peerInfo.channel = ESPNOW_CHANNEL;
+          peerInfo.encrypt = false;
+          
+          esp_err_t addPeerResult = esp_now_add_peer(&peerInfo);
+          if (addPeerResult != ESP_OK) {
+            Serial.print("Warning: Failed to add node "); Serial.print(payload->id);
+            Serial.print(" as peer: "); Serial.println(esp_err_to_name(addPeerResult));
+          } else {
+            Serial.print("Node "); Serial.print(payload->id); Serial.println(" added as ESP-NOW peer");
+          }
+        }
       } else if (payload->type == MSG_TYPE_ACK) {
         Serial.print("Node ");
         Serial.print(payload->id);
@@ -144,7 +168,7 @@ void espnowOnRecv(const uint8_t *mac_addr, const uint8_t *data, int len) {
         Serial.print("Received tare command for node id ");
         Serial.println((uint8_t)payload->id);
         // Only accept if addressed to this node (or id==0 for broadcast)
-        if ((uint8_t)payload->id == DEVICE_ID || (uint8_t)payload->id == 0) {
+        if ((uint8_t)payload->id == deviceId || (uint8_t)payload->id == 0) {
           // mark pending tare (use 1 to indicate tare request)
           pendingTareCommand = 1;
           Serial.println("Tare queued");
@@ -157,28 +181,43 @@ void espnowOnRecv(const uint8_t *mac_addr, const uint8_t *data, int len) {
 }
 
 void espnowSendTare(uint8_t nodeId) {
-  if (!ESPNOW_IS_PARENT) {
+  if (!espnowIsParent) {
     // Only parent sends commands
     return;
   }
   
-  // Parent node sends tare command to child
-  // For simplicity, send broadcast; in production could look up child MAC
-  uint8_t broadcastMac[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+  // Parent node sends tare command to specific child
+  uint8_t* targetMac = nullptr;
+  auto it = childMacs.find(nodeId);
+  if (it != childMacs.end()) {
+    // Found the MAC address for this child
+    targetMac = it->second;
+  } else {
+    Serial.print("Error: No MAC address found for node ");
+    Serial.println(nodeId);
+    return;
+  }
+  
   ESPNowData data;
   data.type = MSG_TYPE_TARE;
-  data.id = nodeId;
-  data.value = 0; // default scale/index
+  data.id = nodeId;  // Include node ID so child can verify it's for them
+  data.value = 0;    // default scale/index
   data.timestamp = millis();
   
-  esp_err_t result = esp_now_send(broadcastMac, (uint8_t *)&data, sizeof(data));
+  Serial.print("Sending tare command to node ");
+  Serial.print(nodeId);
+  Serial.print(" at MAC ");
+  Serial.printf("%02x:%02x:%02x:%02x:%02x:%02x\n",
+    targetMac[0], targetMac[1], targetMac[2],
+    targetMac[3], targetMac[4], targetMac[5]);
+  
+  esp_err_t result = esp_now_send(targetMac, (uint8_t *)&data, sizeof(data));
   if (result != ESP_OK) {
     Serial.print("Error sending tare command: ");
     Serial.print(result);
     Serial.print(" ("); Serial.print(esp_err_to_name(result)); Serial.println(")");
   } else {
-    Serial.print("Sent tare command to node ");
-    Serial.print(nodeId);
+    Serial.println("Tare command sent successfully");
   }
 }
 
@@ -211,7 +250,7 @@ void espnowLoop() {
 }
 
 void espnowBufferWeight(float weight) {
-  if (ESPNOW_IS_PARENT || bufferIndex >= 100) {
+  if (espnowIsParent || bufferIndex >= 100) {
     return;  // Parent doesn't buffer, or buffer is full
   }
   
@@ -219,7 +258,7 @@ void espnowBufferWeight(float weight) {
 }
 
 void espnowSendAveragedWeightIfReady() {
-  if (ESPNOW_IS_PARENT) {
+  if (espnowIsParent) {
     return;  // Parent doesn't send weight data
   }
   
@@ -243,17 +282,17 @@ void espnowSendAveragedWeightIfReady() {
     uint8_t parentMac[] = PARENT_MAC_ADDR;
     ESPNowData data;
     data.type = MSG_TYPE_WEIGHT;
-    data.id = DEVICE_ID;
+    data.id = deviceId;
     data.value = average;
     data.timestamp = currentTime;
     // include hostname
     memset(data.name, 0, sizeof(data.name));
-    const char *hn = HOSTNAME;
+    const char *hn = hostName;
     if (hn) strncpy(data.name, hn, sizeof(data.name) - 1);
     
     // Serial.println("Sending averaged weight: ");
     Serial.print("Sending: Node ID ");
-    Serial.print(DEVICE_ID);
+    Serial.print(deviceId);
     Serial.print(" - ");
     Serial.print(data.name);
     Serial.print(": ");
@@ -269,24 +308,24 @@ void espnowSendAveragedWeightIfReady() {
 }
 
 void espnowSendWeight(float weight) {
-  if (ESPNOW_IS_PARENT) {
+  if (espnowIsParent) {
     return;  // Parent doesn't send weight data
   }
   
   uint8_t parentMac[] = PARENT_MAC_ADDR;
   ESPNowData data;
   data.type = MSG_TYPE_WEIGHT;
-  data.id = DEVICE_ID;
+  data.id = deviceId;
   data.value = weight;
   data.timestamp = millis();
   // include hostname
   memset(data.name, 0, sizeof(data.name));
-  const char *hn = HOSTNAME;
+  const char *hn = hostName;
   if (hn) strncpy(data.name, hn, sizeof(data.name) - 1);
   
   // Serial.println("Sending averaged weight: ");
   Serial.print("Sending: Node ID ");
-  Serial.print(DEVICE_ID);
+  Serial.print(deviceId);
   Serial.print(" - ");
   Serial.print(data.name);
   Serial.print(": ");
@@ -307,6 +346,37 @@ const char* espnowGetChildName(uint8_t childId) {
   auto it = childNames.find(childId);
   if (it != childNames.end()) return it->second.c_str();
   return "";
+}
+
+void espnowPrintConnectedChildren() {
+  if (!espnowIsParent) return;
+  
+  Serial.println("=== Connected Child Nodes ===");
+  if (childMacs.empty()) {
+    Serial.println("No child nodes connected");
+    return;
+  }
+  
+  for (auto& pair : childMacs) {
+    uint8_t nodeId = pair.first;
+    uint8_t* mac = pair.second;
+    float weight = espnowGetChildWeight(nodeId);
+    const char* name = espnowGetChildName(nodeId);
+    
+    Serial.print("Node ");
+    Serial.print(nodeId);
+    Serial.print(" - ");
+    Serial.print(name);
+    Serial.print(" - MAC: ");
+    Serial.printf("%02x:%02x:%02x:%02x:%02x:%02x",
+      mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    if (!isnan(weight)) {
+      Serial.print(" - Weight: ");
+      Serial.print(weight, 1);
+      Serial.print("g");
+    }
+    Serial.println();
+  }
 }
 
 void espnowPrintPeers() {

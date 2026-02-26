@@ -1,16 +1,20 @@
-// add this line including the hash: 
-// #include "config.h" 
-// config.h
+// config.h - global configuration and runtime variables
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include <stdint.h>
+#include <Arduino.h>  // for Arduino types
 #include "secrets.h"
 
-// blah blah blah
 // Global battery voltage variable
 extern float vbat;
 
-#endif
+// Runtime configuration (can be overridden by Preferences)
+extern uint8_t deviceId;           // 0 = parent, 1-4 = child
+extern bool espnowIsParent;        // derived from deviceId
+extern const char* hostName;       // hostname to use for WiFi / display
+extern float calibrationFactor;    // scale calibration value
+extern uint8_t tareButtonPin;      // pin number used for tare button
 
 #define DEBUG 0
 
@@ -23,7 +27,7 @@ extern float vbat;
 #endif
 
 // Known WiFi networks and passwords are now in secrets.h
-constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
+static constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 
 // Access Point credentials (if no known WiFi found)
 // update these in secrets.h
@@ -45,41 +49,12 @@ constexpr int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 #define ADC_RESOLUTION 4095.0  // 12-bit ADC
 
 // ESP-NOW Configuration
-// Set to 0 for parent node (receives data), 1-4 for child nodes (sends data)
-#define DEVICE_ID 0
-
-#if DEVICE_ID == 0  // Parent node ID
-  #define ESPNOW_IS_PARENT 1
-  #define HOSTNAME "LaunchScale"
-  #define CALIBRATION_FACTOR 0
-
-#elif DEVICE_ID == 1 // First Child node ID
-  #define ESPNOW_IS_PARENT 0
-  #define HOSTNAME "Yellow"
-  #define CALIBRATION_FACTOR 2128.66
-#elif DEVICE_ID == 2 // Second Child node ID
-  #define ESPNOW_IS_PARENT 0
-  #define HOSTNAME "Grey"
-  #define CALIBRATION_FACTOR -2063.8
-#elif DEVICE_ID == 3 // Third Child node ID
-  #define ESPNOW_IS_PARENT 0
-  #define HOSTNAME "Purple"
-  #define CALIBRATION_FACTOR 2000
-#elif DEVICE_ID == 4 // Fourth Child node ID
-  #define ESPNOW_IS_PARENT 0
-  #define HOSTNAME "Black"
-  #define CALIBRATION_FACTOR 1054.42
-#else 
-    #error "Invalid DEVICE_ID specified."
-#endif
-
-// Tare button pin
-#if ESPNOW_IS_PARENT
-  #define TARE_BUTTON_PIN 14 // normal scale pin 15. Parent 14 because 15 is broken on my ESP32
-#else
-  #define TARE_BUTTON_PIN 15 // normal scale pin 15.
-#endif
+// A node ID of 0 = parent, 1-4 = children is used at runtime.  Defaults are
+// provided by the initial values of the globals in nodeconfig.cpp; preferences
+// may override the ID on first boot.  No compile-time macros are required.
 
 // Data transmission interval
 #define CHILD_NODE_INTERVAL 1000  // ms between scale readings on child
 #define ESPNOW_CHANNEL 6 // WiFi channel for ESP-NOW communication  
+
+#endif

@@ -62,5 +62,8 @@ void espnowSendAveragedWeightIfReady();
 // Print connected peer information (debug)
 void espnowPrintPeers();
 
+// Print registered child nodes with their MAC addresses (parent only, debug)
+void espnowPrintConnectedChildren();
+
 #endif  // ESPNOW_H
 
