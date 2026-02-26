@@ -9,6 +9,8 @@
 static SemaphoreHandle_t scaleMutex = NULL;
 HX711 scale;
 String scaleMessage = "";
+int lastTareButtonState = HIGH; // default state of the tare button
+
 
 void initScale() {
     // Initialization code for the scale
@@ -99,6 +101,33 @@ float scaleCalibrate() {
     }
     if (scaleMutex) xSemaphoreGive(scaleMutex);
     return result;
+}
+
+// Check tare button state with debouncing and return true if pressed (called from main loop)
+bool checkTareButton() {
+  static unsigned long lastTarePressTime = 0;  // Track last successful tare press
+  const unsigned long DEBOUNCE_DELAY = 2000;     // ms debounce delay
+  
+  bool tareButtonState = digitalRead(TARE_BUTTON_PIN);
+  unsigned long currentTime = millis();
+  
+  // return true if button is currently pressed (active LOW) and was not pressed in the last check (to detect new presses)
+  // AND enough time has passed since the last successful tare press
+  if (tareButtonState == LOW && lastTareButtonState == HIGH) {
+    if (currentTime - lastTarePressTime >= DEBOUNCE_DELAY) {
+      debugln("Tare button press detected!");
+      lastTareButtonState = tareButtonState;
+      lastTarePressTime = currentTime;  // record this successful press
+      return true;
+    } else {
+      debugln("Tare button ignored (debounce)");
+      lastTareButtonState = tareButtonState;
+      return false;
+    }
+  } else {
+    lastTareButtonState = tareButtonState; // update last state even if not pressed
+    return false;
+  }
 }
 
 // Tare the single scale on child node

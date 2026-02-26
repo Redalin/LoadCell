@@ -6,6 +6,7 @@
 #include "HX711.h"
 
 void initScale();
+bool checkTareButton();
 void scaleTare(); // Tare the scale
 float scaleRead(); // Read from the scale
 float scaleDummyRead();  // For testing without scale

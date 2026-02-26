@@ -18,9 +18,10 @@
 String mainMessage = "Starting up...";
 // Button state tracking for tare button
 static int lastTareButtonState = HIGH; // set it high initially (not pressed)
-static int batteryReadCounter = 0;  // Counter for battery reading
-static int scaleReadCounter = 0;    // Counter for scale reading
 static int tareButtonState = HIGH; // default state of the tare button
+
+// timing for periodic tasks
+static unsigned long lastBatteryReadTime = 0; // track last battery check
 
 void setup()
 {
@@ -52,6 +53,8 @@ void setup()
     initwebservers();
     initpitbuttons();
     ElegantOTA.begin(&server);
+    // Display hostname and IP on parent OLED
+    displayDefaultParent(vbat);
   } else {
     // We are a Child node so initialise the scale only
     initScale();
@@ -90,6 +93,9 @@ void loop()
     }
     ElegantOTA.loop();
 
+    // Update parent display (revert to default after 10s if temp message shown)
+    updateParentDisplay(vbat);
+
   } else {
     // Child node: read scale and send weight to parent every 500ms
     if (currentTime - lastCheckTime > 500) { 
@@ -115,21 +121,15 @@ void loop()
 
   // All nodes
   // Check tare button every loop
-  tareButtonState = digitalRead(TARE_BUTTON_PIN);
-  debug("Tare Button State: ");
-  debugln(tareButtonState);
-  debug(" Last State: ");
-  debugln(lastTareButtonState);
-
-  if (tareButtonState == LOW && lastTareButtonState == HIGH) {
-    debugln("Tare button is PRESSED - sending tare command");
+  if(checkTareButton()) {
+    debugln("Tare button is currently pressed");
     if (!ESPNOW_IS_PARENT) {
-      scaleTare(); // send tare command
+      scaleTare(); // send tare command to local node
       debugln("Tare performed locally on Child node");
     } else {
-      // Parent node - broadcast tare command to all child nodes, max of 4
+      // Parent node - broadcast tare command to all 4 child nodes
       String tareMessage = "Taring all nodes...";
-      displayText(tareMessage, vbat);
+      displayTextTemporary(tareMessage, vbat);
       Serial.println(tareMessage);
            
       for (uint8_t nodeId = 1; nodeId <= 4; nodeId++) {
@@ -137,25 +137,14 @@ void loop()
         espnowSendTare(nodeId);
       }
     }
-  } else if (tareButtonState == LOW && lastTareButtonState == LOW) {
-    debugln("Tare button is STILL PRESSED");
-  } else{
-    // debugln("Tare button is NOT pressed");
   }
-  lastTareButtonState = tareButtonState; // update button state
 
-  // Read battery voltage every 100 loops (~10 seconds)
-  batteryReadCounter++;
-  debug("Battery Read Counter: ");
-  debugln(batteryReadCounter);
-  if (batteryReadCounter >= 100) {
+  // Read battery voltage every 10 seconds using millis()
+  if (currentTime - lastBatteryReadTime >= 10000) {
+    lastBatteryReadTime = currentTime;
     vbat = readVBAT();
-    batteryReadCounter = 0;
     debugln("Battery Voltage: " + String(vbat, 2) + "v");
-    // mainMessage = "http:\\\\" + String(WiFi.getHostname()) + "\nIP: " + WiFi.localIP().toString();
-    // displayText(mainMessage, vbat); // update display with new voltage
-    // removed as vbat is a global update
   }
 
-  delay(100);
+  // no delay() here so loop can run as fast as necessary
 }

@@ -40,7 +40,7 @@ void announcePilotSwap(int lane) {
   debugln(message);
   buttonStates[lane-1].countdown = countdownTimer;
   String oledMessage = "Lane " + String(lane) + ": Pilot Swap";
-  displayText(oledMessage);
+  displayTextTemporary(oledMessage);
   ws.textAll(message);
 }
 
