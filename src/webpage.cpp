@@ -37,16 +37,20 @@ void initwebservers(){
     request->send(LittleFS, "/gp25/index.html", "text/html");
   });
 
-  // Serve static files from pitbuttons directory
+  // Serve static files from gp25 directory
   server.serveStatic("/gp25/", LittleFS, "/gp25/");
 
-    // gp26 page
-  server.on("/gp26", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(LittleFS, "/gp26/index.html", "text/html");
-  });
+  // gp26 page
+  // server.on("/gp26", HTTP_GET, [](AsyncWebServerRequest *request) {
+  //   request->send(LittleFS, "/gp26/index.html", "text/html");
+  // });
 
-  // Serve static files from pitbuttons directory
-  server.serveStatic("/gp26/", LittleFS, "/gp26/");
+  //   server.on("/gp26", HTTP_GET, [](AsyncWebServerRequest *request) {
+  //   request->send(LittleFS, "/gp26/gp26.html", "text/html");
+  // });
+
+  // Serve static files from gp26 directory
+  server.serveStatic("/gp26/", LittleFS, "/gp26/").setDefaultFile("gp26.html").setCacheControl("max-age=86400"); // 1 day cache for static assets;
 
 
   // settings endpoints
