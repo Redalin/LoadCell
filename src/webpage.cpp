@@ -32,13 +32,22 @@ void initwebservers(){
     request->send(LittleFS, "/favicon.png", "image/png");
   });
 
-  // pitbuttons page
-  server.on("/pitbuttons", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(LittleFS, "/pitbuttons/index.html", "text/html");
+  // gp25 page
+  server.on("/gp25", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send(LittleFS, "/gp25/index.html", "text/html");
   });
 
   // Serve static files from pitbuttons directory
-  server.serveStatic("/pitbuttons/", LittleFS, "/pitbuttons/");
+  server.serveStatic("/gp25/", LittleFS, "/gp25/");
+
+    // gp26 page
+  server.on("/gp26", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send(LittleFS, "/gp26/index.html", "text/html");
+  });
+
+  // Serve static files from pitbuttons directory
+  server.serveStatic("/gp26/", LittleFS, "/gp26/");
+
 
   // settings endpoints
   server.on("/settings", HTTP_GET, [](AsyncWebServerRequest *request){
