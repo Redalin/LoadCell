@@ -216,6 +216,14 @@ canvas { background: #fff; border-radius:6px; }
     background: #FF5252;
     color: #fff;
 }
+.dynamicGraph .dgFooter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+    font-size: 0.85rem;
+    opacity: 0.85;
+}
 .dgNameInput { padding:6px 8px; border-radius:6px; width: 50px; }
 .dgColor { width:34px; height:28px; border-radius:6px; border:1px solid #ddd; }
 .dgTare { background:#0aa1e7; color:#fff; border:none; padding:6px 8px; border-radius:6px; cursor:pointer; }

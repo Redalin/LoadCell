@@ -7,6 +7,8 @@
 // Map to store child node weights: childId -> weight
 static std::map<uint8_t, float> childWeights;
 static std::map<uint8_t, String> childNames;
+static std::map<uint8_t, float> childVbats;
+static std::map<uint8_t, String> childFirmwares;
 static std::map<uint8_t, uint8_t*> childMacs;  // childId -> MAC address (6 bytes)
 static uint8_t nodeId = 0;  // This device's ID (set on child nodes)
 static uint8_t pendingTareCommand = 0;  // Pending tare command (scale number, 0 = none)
@@ -133,6 +135,11 @@ void espnowOnRecv(const uint8_t *mac_addr, const uint8_t *data, int len) {
         // store hostname if present
         if (payload->name[0] != '\0') {
           childNames[payload->id] = String(payload->name);
+        }
+        // store battery voltage and firmware (firmware updated only on startup, vbat updated periodically by child)
+        childVbats[payload->id] = payload->vbat;
+        if (payload->firmware[0] != '\0') {
+          childFirmwares[payload->id] = String(payload->firmware);
         }
         // Store the MAC address of this child node for targeted commands
         auto it = childMacs.find(payload->id);
@@ -289,6 +296,11 @@ void espnowSendAveragedWeightIfReady() {
     memset(data.name, 0, sizeof(data.name));
     const char *hn = hostName;
     if (hn) strncpy(data.name, hn, sizeof(data.name) - 1);
+    // include battery voltage (already updated periodically by main loop)
+    // and firmware version (constant, no per-cycle work)
+    data.vbat = vbat;
+    memset(data.firmware, 0, sizeof(data.firmware));
+    strncpy(data.firmware, FIRMWARE_VERSION, sizeof(data.firmware) - 1);
     
     // Serial.println("Sending averaged weight: ");
     Serial.print("Sending: Node ID ");
@@ -322,7 +334,12 @@ void espnowSendWeight(float weight) {
   memset(data.name, 0, sizeof(data.name));
   const char *hn = hostName;
   if (hn) strncpy(data.name, hn, sizeof(data.name) - 1);
-  
+  // include battery voltage (already updated periodically by main loop)
+  // and firmware version (constant, no per-cycle work)
+  data.vbat = vbat;
+  memset(data.firmware, 0, sizeof(data.firmware));
+  strncpy(data.firmware, FIRMWARE_VERSION, sizeof(data.firmware) - 1);
+
   // Serial.println("Sending averaged weight: ");
   Serial.print("Sending: Node ID ");
   Serial.print(deviceId);
@@ -345,6 +362,18 @@ void espnowSendWeight(float weight) {
 const char* espnowGetChildName(uint8_t childId) {
   auto it = childNames.find(childId);
   if (it != childNames.end()) return it->second.c_str();
+  return "";
+}
+
+float espnowGetChildVbat(uint8_t childId) {
+  auto it = childVbats.find(childId);
+  if (it != childVbats.end()) return it->second;
+  return NAN;
+}
+
+const char* espnowGetChildFirmware(uint8_t childId) {
+  auto it = childFirmwares.find(childId);
+  if (it != childFirmwares.end()) return it->second.c_str();
   return "";
 }
 

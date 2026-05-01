@@ -151,6 +151,10 @@ static void notifyClients(){
         child["weight"] = childWeight;
         const char* hn = espnowGetChildName(i);
         if (hn && hn[0] != '\0') child["name"] = hn;
+        float cv = espnowGetChildVbat(i);
+        if (!isnan(cv)) child["vbat"] = cv;
+        const char* fw = espnowGetChildFirmware(i);
+        if (fw && fw[0] != '\0') child["firmware"] = fw;
       }
     }
     

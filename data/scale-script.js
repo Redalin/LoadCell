@@ -111,7 +111,14 @@
     const canvas = document.createElement('canvas'); canvas.className = 'graphCanvas'; canvas.width = 700; canvas.height = 180;
     card.appendChild(canvas);
 
-    const g = { container: card, canvas, ctx: canvas.getContext('2d'), data: [], lastSeen: Date.now(), name: nameInput.value || serverName || ('Scale ' + id), color: colorInput.value, weightEl, titleEl: title, nameInput, colorInput, editBtn, saveBtn, cancelBtn, statusIndicator };
+    // footer under the graph for battery voltage and firmware version
+    const footer = document.createElement('div'); footer.className = 'dgFooter';
+    const vbatEl = document.createElement('span'); vbatEl.className = 'dgVbat'; vbatEl.textContent = 'Battery: --';
+    const fwEl = document.createElement('span'); fwEl.className = 'dgFirmware'; fwEl.textContent = 'FW: --';
+    footer.appendChild(vbatEl); footer.appendChild(fwEl);
+    card.appendChild(footer);
+
+    const g = { container: card, canvas, ctx: canvas.getContext('2d'), data: [], lastSeen: Date.now(), name: nameInput.value || serverName || ('Scale ' + id), color: colorInput.value, weightEl, titleEl: title, nameInput, colorInput, editBtn, saveBtn, cancelBtn, statusIndicator, vbatEl, fwEl, vbat: undefined, firmware: '' };
     // initial value
     if (firstValue !== undefined && !isNaN(firstValue)) g.data.push({ t: Date.now(), v: Number(firstValue) });
 
@@ -208,6 +215,8 @@
         const serverName = entry.name;
         const g = createChildGraph(k, val, serverName);
         if (val === null || val === undefined || isNaN(val)) g.data.push({ t: now, v: NaN }); else { g.data.push({ t: now, v: Number(val) }); g.lastSeen = now; }
+        if (entry.vbat !== undefined && entry.vbat !== null) g.vbat = Number(entry.vbat);
+        if (entry.firmware) g.firmware = String(entry.firmware);
         const cutoff = now - WINDOW_MS; while (g.data.length && g.data[0].t < cutoff) g.data.shift();
       });
       return;
@@ -229,6 +238,10 @@
       } else {
         g.data.push({ t: now, v: Number(val) });
         g.lastSeen = now;
+      }
+      if (entry && typeof entry === 'object') {
+        if (entry.vbat !== undefined && entry.vbat !== null) g.vbat = Number(entry.vbat);
+        if (entry.firmware) g.firmware = String(entry.firmware);
       }
       // trim to window
       const cutoff = now - WINDOW_MS;
@@ -505,6 +518,12 @@
         const last = g.data.length ? g.data[g.data.length - 1] : null;
         if (g.weightEl) {
           g.weightEl.textContent = (last && !isNaN(last.v)) ? (last.v.toFixed(1) + ' g') : '-- g';
+        }
+        if (g.vbatEl) {
+          g.vbatEl.textContent = (g.vbat !== undefined && !isNaN(g.vbat)) ? ('Battery: ' + g.vbat.toFixed(2) + ' V') : 'Battery: --';
+        }
+        if (g.fwEl) {
+          g.fwEl.textContent = g.firmware ? ('FW: ' + g.firmware) : 'FW: --';
         }
         // Update drone state based on current weight
         if (last && !isNaN(last.v)) {
