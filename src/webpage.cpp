@@ -32,13 +32,26 @@ void initwebservers(){
     request->send(LittleFS, "/favicon.png", "image/png");
   });
 
-  // pitbuttons page
-  server.on("/pitbuttons", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(LittleFS, "/pitbuttons/index.html", "text/html");
+  // gp25 page
+  server.on("/gp25", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send(LittleFS, "/gp25/index.html", "text/html");
   });
 
-  // Serve static files from pitbuttons directory
-  server.serveStatic("/pitbuttons/", LittleFS, "/pitbuttons/");
+  // Serve static files from gp25 directory
+  server.serveStatic("/gp25/", LittleFS, "/gp25/");
+
+  // gp26 page
+  // server.on("/gp26", HTTP_GET, [](AsyncWebServerRequest *request) {
+  //   request->send(LittleFS, "/gp26/index.html", "text/html");
+  // });
+
+  //   server.on("/gp26", HTTP_GET, [](AsyncWebServerRequest *request) {
+  //   request->send(LittleFS, "/gp26/gp26.html", "text/html");
+  // });
+
+  // Serve static files from gp26 directory
+  server.serveStatic("/gp26/", LittleFS, "/gp26/").setDefaultFile("gp26.html").setCacheControl("max-age=86400"); // 1 day cache for static assets;
+
 
   // settings endpoints
   server.on("/settings", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -138,6 +151,10 @@ static void notifyClients(){
         child["weight"] = childWeight;
         const char* hn = espnowGetChildName(i);
         if (hn && hn[0] != '\0') child["name"] = hn;
+        float cv = espnowGetChildVbat(i);
+        if (!isnan(cv)) child["vbat"] = cv;
+        const char* fw = espnowGetChildFirmware(i);
+        if (fw && fw[0] != '\0') child["firmware"] = fw;
       }
     }
     

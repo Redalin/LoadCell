@@ -1,0 +1,7 @@
+# Wokwi config for the simplified preview build.
+# Point this at the env that builds src/main_wokwi.cpp (see platformio.ini env:wokwi).
+# Build it first with:  pio run -e wokwi
+[wokwi]
+version = 1
+firmware = '.pio/build/wokwi/firmware.bin'
+elf = '.pio/build/wokwi/firmware.elf'

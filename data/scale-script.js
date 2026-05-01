@@ -13,6 +13,33 @@
   const CHILD_TIMEOUT_MS = 5 * 60 * 1000; // remove after 5 minutes of no data
   const MAX_DATA_TIMEOUT = 10000; // 10 seconds without data = show 0 on graph
 
+  // Drone status tracking: id -> { state: 'READY'|'TAKEOFF'|'EMPTY', lastStateChange: timestamp }
+  const droneState = new Map();
+  const DRONE_TAKEOFF_DURATION = 3000; // 3 seconds for TAKEOFF state
+  const DRONE_WEIGHT_THRESHOLD = 100; // grams
+
+  // Dummy mode: when enabled, offline scales show simulated random-walk data
+  // instead of falling back to 0. State is persisted in localStorage.
+  let dummyMode = localStorage.getItem('dummyMode') === '1';
+  // Per-scale dummy state (random walk seeded around different baselines)
+  const dummyState = new Map();
+  function dummyValueFor(id) {
+    const key = String(id);
+    let s = dummyState.get(key);
+    if (!s) {
+      // baseline staggered per scale so graphs look distinct
+      const base = 500 + ((Number(id) || 1) * 30);
+      s = { value: base + (Math.random() * 40 - 20), base };
+      dummyState.set(key, s);
+    }
+    // random walk, clamped to a believable range around baseline
+    s.value += (Math.random() - 0.5) * 8;
+    const lo = s.base - 120, hi = s.base + 120;
+    if (s.value < lo) s.value = lo;
+    if (s.value > hi) s.value = hi;
+    return s.value;
+  }
+
   // Load persisted child names/colors from localStorage
   const persistedChildNames = JSON.parse(localStorage.getItem('childNames') || '{}');
   const persistedChildColors = JSON.parse(localStorage.getItem('childColors') || '{}');
@@ -32,23 +59,38 @@
     // If already exists, return it
     if (childGraphs.has(key)) return childGraphs.get(key);
 
-    // enforce max
-    if (childGraphs.size >= MAX_CHILD_GRAPHS) {
-      // remove least recently seen to make space
-      let oldestId = null; let oldestTime = Infinity;
-      childGraphs.forEach((g, k) => { if (g.lastSeen < oldestTime) { oldestId = k; oldestTime = g.lastSeen; } });
-      if (oldestId !== null) removeChildGraph(oldestId);
+    // Try to find pre-created container, or create a new one
+    let card = document.getElementById('scale-' + id);
+    if (!card) {
+      card = document.createElement('div'); 
+      card.className = 'dynamicGraph';
+      card.id = 'scale-' + id;
+      try {
+        const container = document.getElementById('dynamicGraphs') || document.getElementById('scaleBoxes') || document.body;
+        container.appendChild(card);
+      } catch (err) {
+        console.error('Failed to insert dynamic graph card', err);
+        document.body.appendChild(card);
+      }
+    } else {
+      // Clear pre-created container
+      card.innerHTML = '';
     }
 
-    const card = document.createElement('div'); card.className = 'dynamicGraph';
     const header = document.createElement('div'); header.className = 'dgHeader';
     const titleRow = document.createElement('div'); titleRow.className = 'dgTitleRow';
-    const title = document.createElement('div'); title.textContent = serverName || ('Node ' + id); title.style.fontWeight = '600';
+    
+    // Status indicator
+    const statusIndicator = document.createElement('div'); 
+    statusIndicator.className = 'status-indicator'; 
+    titleRow.appendChild(statusIndicator);
+    
+    const title = document.createElement('div'); title.textContent = serverName || ('Scale ' + id); title.style.fontWeight = '600';
     // name input (hidden until editing)
     const nameInput = document.createElement('input'); nameInput.className = 'dgNameInput';
     nameInput.placeholder = 'Custom name...';
     nameInput.style.display = 'none';
-    nameInput.value = persistedChildNames[key] || serverName || ('Node ' + id);
+    nameInput.value = persistedChildNames[key] || serverName || ('Scale ' + id);
     const weightEl = document.createElement('div'); weightEl.className = 'dgWeight'; weightEl.style.marginLeft = '8px'; weightEl.textContent = '-- g';
     const tareBtn = document.createElement('button'); tareBtn.className = 'dgTare'; tareBtn.textContent = 'Tare';
 
@@ -68,16 +110,15 @@
     card.appendChild(header);
     const canvas = document.createElement('canvas'); canvas.className = 'graphCanvas'; canvas.width = 700; canvas.height = 180;
     card.appendChild(canvas);
-    // resolve container at runtime (in case DOM changed); prefer dynamicGraphs
-    try {
-      const container = document.getElementById('dynamicGraphs') || document.getElementById('scaleBoxes') || document.body;
-      container.prepend(card);
-    } catch (err) {
-      console.error('Failed to insert dynamic graph card', err);
-      document.body.prepend(card);
-    }
 
-    const g = { container: card, canvas, ctx: canvas.getContext('2d'), data: [], lastSeen: Date.now(), name: nameInput.value || serverName || ('Node ' + id), color: colorInput.value, weightEl, titleEl: title, nameInput, colorInput, editBtn, saveBtn, cancelBtn };
+    // footer under the graph for battery voltage and firmware version
+    const footer = document.createElement('div'); footer.className = 'dgFooter';
+    const vbatEl = document.createElement('span'); vbatEl.className = 'dgVbat'; vbatEl.textContent = 'Battery: --';
+    const fwEl = document.createElement('span'); fwEl.className = 'dgFirmware'; fwEl.textContent = 'FW: --';
+    footer.appendChild(vbatEl); footer.appendChild(fwEl);
+    card.appendChild(footer);
+
+    const g = { container: card, canvas, ctx: canvas.getContext('2d'), data: [], lastSeen: Date.now(), name: nameInput.value || serverName || ('Scale ' + id), color: colorInput.value, weightEl, titleEl: title, nameInput, colorInput, editBtn, saveBtn, cancelBtn, statusIndicator, vbatEl, fwEl, vbat: undefined, firmware: '' };
     // initial value
     if (firstValue !== undefined && !isNaN(firstValue)) g.data.push({ t: Date.now(), v: Number(firstValue) });
 
@@ -96,7 +137,7 @@
       nameInput.focus();
     });
     saveBtn.addEventListener('click', () => {
-      g.name = nameInput.value || ('Node ' + id);
+      g.name = nameInput.value || ('Scale ' + id);
       g.color = colorInput.value;
       title.textContent = g.name;
       // apply background and readable text color to the card
@@ -135,7 +176,8 @@
     nameInput.addEventListener('change', () => { /* no-op until saved */ });
     colorInput.addEventListener('input', () => { /* preview handled on save/draw */ });
     tareBtn.addEventListener('click', () => sendTareCommand(id));
-    removeBtn.addEventListener('click', () => removeChildGraph(id));
+    // Don't remove pre-created graphs; hide the remove button
+    removeBtn.style.display = 'none';
 
     childGraphs.set(key, g);
     // apply initial color to the container/title/weight elements
@@ -173,6 +215,8 @@
         const serverName = entry.name;
         const g = createChildGraph(k, val, serverName);
         if (val === null || val === undefined || isNaN(val)) g.data.push({ t: now, v: NaN }); else { g.data.push({ t: now, v: Number(val) }); g.lastSeen = now; }
+        if (entry.vbat !== undefined && entry.vbat !== null) g.vbat = Number(entry.vbat);
+        if (entry.firmware) g.firmware = String(entry.firmware);
         const cutoff = now - WINDOW_MS; while (g.data.length && g.data[0].t < cutoff) g.data.shift();
       });
       return;
@@ -195,20 +239,15 @@
         g.data.push({ t: now, v: Number(val) });
         g.lastSeen = now;
       }
+      if (entry && typeof entry === 'object') {
+        if (entry.vbat !== undefined && entry.vbat !== null) g.vbat = Number(entry.vbat);
+        if (entry.firmware) g.firmware = String(entry.firmware);
+      }
       // trim to window
       const cutoff = now - WINDOW_MS;
       while (g.data.length && g.data[0].t < cutoff) g.data.shift();
     });
   }
-
-  // Periodically remove stale child graphs
-  setInterval(() => {
-    const now = Date.now();
-    const toRemove = [];
-    childGraphs.forEach((g, id) => { if (now - g.lastSeen > CHILD_TIMEOUT_MS) toRemove.push(id); });
-    toRemove.forEach(id => removeChildGraph(id));
-  }, 30 * 1000);
-
 
   // Spec table elements and input (use robust selector to get the inner input)
   const specInputEl = document.querySelector('#specInput input') || document.getElementById('specInput');
@@ -249,7 +288,13 @@
     const protocol = (loc.protocol === 'https:') ? 'wss://' : 'ws://';
     const url = protocol + loc.host + '/ws';
     ws = new WebSocket(url);
-    ws.onopen = () => setStatus('WS connected');
+    ws.onopen = () => {
+      setStatus('WS connected');
+      // Pre-create graphs for scales 1-4
+      for (let i = 1; i <= 4; i++) {
+        createChildGraph(String(i), undefined, undefined);
+      }
+    };
     // no local scales to initialize; dynamic graphs will appear as data arrives
     ws.onclose = () => { setStatus('WS disconnected — retrying'); setTimeout(connect, 1500); };
     ws.onmessage = (ev) => {
@@ -328,7 +373,7 @@
         localStorage.removeItem('childNames');
         localStorage.removeItem('childColors');
         childGraphs.forEach((g, id) => {
-          g.name = 'Node ' + id;
+          g.name = 'Scale ' + id;
           g.color = '#525c63ff';
         });
         persistChildSettings();
@@ -336,6 +381,24 @@
         setStatus('Defaults restored');
       }).catch(()=> setStatus('Reset failed'));
   });
+
+  // Dummy mode toggle and banner
+  const dummyToggleEl = document.getElementById('dummyModeToggle');
+  const dummyBannerEl = document.getElementById('dummyModeBanner');
+  function applyDummyModeUI() {
+    if (dummyToggleEl) dummyToggleEl.checked = dummyMode;
+    if (dummyBannerEl) dummyBannerEl.hidden = !dummyMode;
+  }
+  if (dummyToggleEl) {
+    dummyToggleEl.addEventListener('change', () => {
+      dummyMode = !!dummyToggleEl.checked;
+      localStorage.setItem('dummyMode', dummyMode ? '1' : '0');
+      if (dummyBannerEl) dummyBannerEl.hidden = !dummyMode;
+      setStatus(dummyMode ? 'Dummy mode ON' : 'Dummy mode OFF');
+      drawAll();
+    });
+  }
+  applyDummyModeUI();
 
   if (selectorWrap) {
     selectorWrap.addEventListener('click', (ev) => {
@@ -380,17 +443,67 @@
     ctx.fillText(min.toFixed(1) + ' g', pad + 4, canvas.clientHeight - pad - 2);
   }
 
+  // Update drone state based on current weight
+  function updateDroneState(id, currentWeight) {
+    const key = String(id);
+    const now = Date.now();
+    
+    // Initialize state if not exists
+    if (!droneState.has(key)) {
+      droneState.set(key, { state: 'EMPTY', lastStateChange: now });
+    }
+    
+    const state = droneState.get(key);
+    
+    // State machine logic
+    if (currentWeight > DRONE_WEIGHT_THRESHOLD) {
+      // Weight is above threshold
+      if (state.state !== 'READY') {
+        state.state = 'READY';
+        state.lastStateChange = now;
+      }
+    } else {
+      // Weight is below threshold
+      if (state.state === 'READY') {
+        // Transition from READY to TAKEOFF
+        state.state = 'TAKEOFF';
+        state.lastStateChange = now;
+      } else if (state.state === 'TAKEOFF') {
+        // Check if 3 seconds have passed
+        if (now - state.lastStateChange >= DRONE_TAKEOFF_DURATION) {
+          state.state = 'EMPTY';
+          state.lastStateChange = now;
+        }
+      }
+    }
+  }
+
   function drawAll() {
     // draw dynamic child graphs only
     childGraphs.forEach((g, id) => {
       try {
         const now = Date.now();
-        // If no data has been received from this child for a time, append a 0 value so
-        // the graph and displayed weight update to 0.
+        // Update status indicator - active if data received recently, inactive otherwise
+        const isActive = (now - (g.lastSeen || 0)) < MAX_DATA_TIMEOUT;
+        if (g.statusIndicator) {
+          if (isActive) {
+            g.statusIndicator.classList.add('active');
+          } else {
+            g.statusIndicator.classList.remove('active');
+          }
+        }
+        
+        // If no data has been received from this child for a time, append a fallback
+        // value so the graph and displayed weight update. Use dummy data when
+        // dummy mode is on, otherwise fall back to 0.
         if ((now - (g.lastSeen || 0)) > MAX_DATA_TIMEOUT) {
           const lastPoint = g.data.length ? g.data[g.data.length - 1] : null;
-          // Only append a zero if the last data point isn't already a recent 0
-          if (!lastPoint || lastPoint.v !== 0 || (now - lastPoint.t) > 2000) {
+          if (dummyMode) {
+            // Throttle dummy points to roughly the live broadcast cadence
+            if (!lastPoint || (now - lastPoint.t) > 1000) {
+              g.data.push({ t: now, v: dummyValueFor(id) });
+            }
+          } else if (!lastPoint || lastPoint.v !== 0 || (now - lastPoint.t) > 2000) {
             g.data.push({ t: now, v: 0 });
           }
         }
@@ -400,11 +513,21 @@
 
         drawGraph(g.canvas, g.ctx, g.data, g.color || '#0077cc');
         const titleEl = g.titleEl || g.container.querySelector('.dgTitleRow div');
-        if (titleEl) titleEl.textContent = (g.name || ('Node ' + id));
+        if (titleEl) titleEl.textContent = (g.name || ('Scale ' + id));
         // update current weight display
         const last = g.data.length ? g.data[g.data.length - 1] : null;
         if (g.weightEl) {
           g.weightEl.textContent = (last && !isNaN(last.v)) ? (last.v.toFixed(1) + ' g') : '-- g';
+        }
+        if (g.vbatEl) {
+          g.vbatEl.textContent = (g.vbat !== undefined && !isNaN(g.vbat)) ? ('Battery: ' + g.vbat.toFixed(2) + ' V') : 'Battery: --';
+        }
+        if (g.fwEl) {
+          g.fwEl.textContent = g.firmware ? ('FW: ' + g.firmware) : 'FW: --';
+        }
+        // Update drone state based on current weight
+        if (last && !isNaN(last.v)) {
+          updateDroneState(id, last.v);
         }
       } catch (e) {}
     });
@@ -434,7 +557,7 @@
     const thLabel = document.createElement('th'); thLabel.textContent = '5 Sec Avg'; hrow.appendChild(thLabel);
     children.forEach(([id, g]) => {
       const th = document.createElement('th');
-      th.textContent = g.name || ('Node ' + id);
+      th.textContent = g.name || ('Scale ' + id);
       th.style.background = g.color || '';
       th.style.color = textColorForBg(g.color || '#fff');
       hrow.appendChild(th);
@@ -475,6 +598,29 @@
       avgRow.appendChild(td);
     });
     tbody.appendChild(avgRow);
+
+    // third row: drone status
+    const droneRow = document.createElement('tr');
+    const droneLabelTd = document.createElement('td'); droneLabelTd.textContent = 'Drone'; droneLabelTd.style.fontWeight = '600';
+    droneRow.appendChild(droneLabelTd);
+    children.forEach(([id, g]) => {
+      const td = document.createElement('td');
+      td.className = 'drone-status';
+      
+      const state = droneState.get(String(id)) || { state: 'EMPTY', lastStateChange: Date.now() };
+      td.textContent = state.state;
+      
+      if (state.state === 'READY') {
+        td.classList.add('drone-ready');
+      } else if (state.state === 'TAKEOFF') {
+        td.classList.add('drone-takeoff');
+      } else {
+        td.classList.add('drone-empty');
+      }
+      
+      droneRow.appendChild(td);
+    });
+    tbody.appendChild(droneRow);
 
     // replace table contents
     specTable.innerHTML = '';

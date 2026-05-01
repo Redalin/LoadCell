@@ -19,6 +19,8 @@ typedef struct {
   float value;            // Weight (for MSG_TYPE_WEIGHT) or scale index (for MSG_TYPE_TARE)
   char name[24];          // Hostname of sending node (NUL-terminated)
   uint32_t timestamp;     // Timestamp in ms
+  float vbat;             // Battery voltage of sending child (volts)
+  char firmware[12];      // Firmware version string of sending child (NUL-terminated)
 } ESPNowData;
 
 // Initialize ESP-NOW (parent or child mode based on config)
@@ -41,6 +43,12 @@ float espnowGetChildWeight(uint8_t childId);
 
 // Get the last-known hostname for a child node (empty string if unknown)
 const char* espnowGetChildName(uint8_t childId);
+
+// Get the last-known battery voltage for a child node (NaN if unknown)
+float espnowGetChildVbat(uint8_t childId);
+
+// Get the last-known firmware version for a child node (empty string if unknown)
+const char* espnowGetChildFirmware(uint8_t childId);
 
 // Check if there's a pending tare command for this node (child only)
 // Returns: scale number (1 or 2) if tare needed, 0 if none
