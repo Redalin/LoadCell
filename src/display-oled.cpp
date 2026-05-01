@@ -20,9 +20,13 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 String textMessage = "Set up OLED...";
 
-// State tracking for temporary messages
-static unsigned long lastTempMessageTime = 0;
-static bool isTempMessage = false;
+// Parent OLED state: URL/IP are always shown; transient messages appear on a
+// dedicated line below and are cleared after PARENT_MESSAGE_TTL_MS.
+static String parentMessage = "";
+static unsigned long parentMessageExpire = 0;
+static unsigned long lastParentDraw = 0;
+static const unsigned long PARENT_MESSAGE_TTL_MS = 10000;
+static const unsigned long PARENT_REDRAW_INTERVAL_MS = 1000;
 
 void displaysetup() {
 
@@ -56,24 +60,15 @@ void displayText(String message, float voltage) {
   display.println(message);
   drawBatteryIcon(voltage);
   display.display();
-  
-  isTempMessage = false;  // regular displayText doesn't reset to default
 }
 
+// Parent: post a transient status message on the bottom line without
+// clobbering URL/IP. Repaints immediately and the message expires after
+// PARENT_MESSAGE_TTL_MS.
 void displayTextTemporary(String message, float voltage) {
-  display.clearDisplay();
-
-  display.setTextSize(1);
-  display.setTextColor(WHITE);
-  display.setCursor(0, 0);
-  display.cp437(true);
-
-  display.println(message);
-  drawBatteryIcon(voltage);
-  display.display();
-  
-  lastTempMessageTime = millis();
-  isTempMessage = true;  // mark as temporary so it reverts after 10s
+  parentMessage = message;
+  parentMessageExpire = millis() + PARENT_MESSAGE_TTL_MS;
+  displayDefaultParent(voltage);
 }
 
 void displayDefaultParent(float voltage) {
@@ -86,18 +81,31 @@ void displayDefaultParent(float voltage) {
 
   String hostname = String(WiFi.getHostname());
   String ip = WiFi.localIP().toString();
-  
+
   display.println("http://" + hostname);
   display.println("IP: " + ip);
+
+  // Bottom line (above battery row): show transient message if still active
+  if (parentMessage.length() && millis() < parentMessageExpire) {
+    display.setCursor(0, 16);
+    display.println(parentMessage);
+  }
+
   drawBatteryIcon(voltage);
   display.display();
-  
-  isTempMessage = false;
+
+  lastParentDraw = millis();
 }
 
 void updateParentDisplay(float voltage) {
-  // If a temporary message is displayed and 10 seconds have passed, revert to default
-  if (isTempMessage && (millis() - lastTempMessageTime >= 10000)) {
+  unsigned long now = millis();
+  // Clear an expired transient message so the next redraw drops it
+  if (parentMessage.length() && now >= parentMessageExpire) {
+    parentMessage = "";
+  }
+  // Periodic refresh keeps the battery indicator current and self-heals the
+  // screen if anything else briefly wrote to it.
+  if (now - lastParentDraw >= PARENT_REDRAW_INTERVAL_MS) {
     displayDefaultParent(voltage);
   }
 }
