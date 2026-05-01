@@ -249,3 +249,38 @@ canvas { background: #fff; border-radius:6px; }
     width: 25px;
     margin: 8px;
 }
+
+.dummyToggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: #fff8d6;
+    border: 1px solid #d6c66a;
+    cursor: pointer;
+    user-select: none;
+    font-weight: 600;
+    color: #5a4a00;
+}
+.dummyToggle input { cursor: pointer; }
+
+.dummyModeBanner {
+    margin: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: repeating-linear-gradient(
+        45deg,
+        #ffd54f,
+        #ffd54f 12px,
+        #ffb300 12px,
+        #ffb300 24px
+    );
+    color: #3b2a00;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border: 2px solid #b26a00;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}

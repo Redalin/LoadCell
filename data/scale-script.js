@@ -18,6 +18,28 @@
   const DRONE_TAKEOFF_DURATION = 3000; // 3 seconds for TAKEOFF state
   const DRONE_WEIGHT_THRESHOLD = 100; // grams
 
+  // Dummy mode: when enabled, offline scales show simulated random-walk data
+  // instead of falling back to 0. State is persisted in localStorage.
+  let dummyMode = localStorage.getItem('dummyMode') === '1';
+  // Per-scale dummy state (random walk seeded around different baselines)
+  const dummyState = new Map();
+  function dummyValueFor(id) {
+    const key = String(id);
+    let s = dummyState.get(key);
+    if (!s) {
+      // baseline staggered per scale so graphs look distinct
+      const base = 500 + ((Number(id) || 1) * 30);
+      s = { value: base + (Math.random() * 40 - 20), base };
+      dummyState.set(key, s);
+    }
+    // random walk, clamped to a believable range around baseline
+    s.value += (Math.random() - 0.5) * 8;
+    const lo = s.base - 120, hi = s.base + 120;
+    if (s.value < lo) s.value = lo;
+    if (s.value > hi) s.value = hi;
+    return s.value;
+  }
+
   // Load persisted child names/colors from localStorage
   const persistedChildNames = JSON.parse(localStorage.getItem('childNames') || '{}');
   const persistedChildColors = JSON.parse(localStorage.getItem('childColors') || '{}');
@@ -347,6 +369,24 @@
       }).catch(()=> setStatus('Reset failed'));
   });
 
+  // Dummy mode toggle and banner
+  const dummyToggleEl = document.getElementById('dummyModeToggle');
+  const dummyBannerEl = document.getElementById('dummyModeBanner');
+  function applyDummyModeUI() {
+    if (dummyToggleEl) dummyToggleEl.checked = dummyMode;
+    if (dummyBannerEl) dummyBannerEl.hidden = !dummyMode;
+  }
+  if (dummyToggleEl) {
+    dummyToggleEl.addEventListener('change', () => {
+      dummyMode = !!dummyToggleEl.checked;
+      localStorage.setItem('dummyMode', dummyMode ? '1' : '0');
+      if (dummyBannerEl) dummyBannerEl.hidden = !dummyMode;
+      setStatus(dummyMode ? 'Dummy mode ON' : 'Dummy mode OFF');
+      drawAll();
+    });
+  }
+  applyDummyModeUI();
+
   if (selectorWrap) {
     selectorWrap.addEventListener('click', (ev) => {
       const btn = ev.target.closest && ev.target.closest('.winBtn');
@@ -440,12 +480,17 @@
           }
         }
         
-        // If no data has been received from this child for a time, append a 0 value so
-        // the graph and displayed weight update to 0.
+        // If no data has been received from this child for a time, append a fallback
+        // value so the graph and displayed weight update. Use dummy data when
+        // dummy mode is on, otherwise fall back to 0.
         if ((now - (g.lastSeen || 0)) > MAX_DATA_TIMEOUT) {
           const lastPoint = g.data.length ? g.data[g.data.length - 1] : null;
-          // Only append a zero if the last data point isn't already a recent 0
-          if (!lastPoint || lastPoint.v !== 0 || (now - lastPoint.t) > 2000) {
+          if (dummyMode) {
+            // Throttle dummy points to roughly the live broadcast cadence
+            if (!lastPoint || (now - lastPoint.t) > 1000) {
+              g.data.push({ t: now, v: dummyValueFor(id) });
+            }
+          } else if (!lastPoint || lastPoint.v !== 0 || (now - lastPoint.t) > 2000) {
             g.data.push({ t: now, v: 0 });
           }
         }

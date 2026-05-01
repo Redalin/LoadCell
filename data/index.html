@@ -41,7 +41,11 @@
             <div id="scale-3" class="dynamicGraph"></div>
             <div id="scale-4" class="dynamicGraph"></div>
         </div>
-        
+
+        <div id="dummyModeBanner" class="dummyModeBanner" hidden>
+            DUMMY MODE ON &mdash; offline scales are showing simulated data
+        </div>
+
         <!-- Time window selectors -->
         <div id="graphWrap">
             <label for="timeSpan">Select Time Window</label>
@@ -55,6 +59,10 @@
         <div class="actionsRow">
             <button id="tareAllBtn" class="btn3d">Tare All</button>
             <button id="resetBtn" class="btn3d">Reset Defaults</button>
+            <label class="dummyToggle">
+                <input type="checkbox" id="dummyModeToggle">
+                <span>Dummy Mode</span>
+            </label>
         </div>
         <span id="status"></span>
     </main>
