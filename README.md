@@ -8,16 +8,16 @@ load cell amplifiers.
 
 The system runs as a mesh of up to five ESP32 nodes:
 
-- **1 parent** (device ID `0`, hostname `LaunchScale`) — hosts the WiFi
+- **1 parent** (device ID `0`, hostname `LaunchScale`) hosts the WiFi
   connection, mDNS, async web UI (with WebSocket + ElegantOTA), and lane-pit
   buttons. The parent does not have a load cell attached.
 - **Up to 4 children** (device IDs `1`–`4`, named `Yellow`, `Grey`, `Purple`,
-  `Black`) — each reads its own HX711 load cell and reports weight, battery
+  `Black`) - each reads its own HX711 load cell and reports weight, battery
   voltage, and firmware version to the parent over ESP-NOW.
 
-Nodes communicate via ESP-NOW on channel `6`. Children send a buffered weight
-sample to the parent every 2 s. The parent broadcasts data to connected web
-clients in real time.
+Nodes communicate via ESP-NOW on channel `6`. This channel is configurable in [include/config.h](include/config.h)
+Children send a buffered weight sample to the parent every 2s. 
+The parent broadcasts data to connected web clients in real time.
 
 ## Hardware
 

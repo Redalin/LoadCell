@@ -103,8 +103,10 @@ void loop()
     updateParentDisplay(vbat);
 
   } else {
-    // Child node: read scale and send weight to parent every 500ms
-    if (currentTime - lastCheckTime > 500) { 
+    // Child node: sample scale every 500ms into the ESP-NOW buffer and
+    // refresh the OLED. The buffered average is transmitted to the parent
+    // separately on its own send interval.
+    if (currentTime - lastCheckTime > 500) {
       lastCheckTime = currentTime;
 
       // Check for pending remote tare commands
@@ -117,12 +119,15 @@ void loop()
 
       float reading = scaleRead();  // Read from scale
       if (!isnan(reading)) {
-        espnowSendWeight(reading);
+        espnowBufferWeight(reading);
 
         mainMessage = String(reading, 1);
         displayWeight(mainMessage, vbat); // print weight and battery to OLED
       }
     }
+
+    // Drain the buffer when its send window has elapsed.
+    espnowSendAveragedWeightIfReady();
   }
 
   // All nodes

@@ -2,8 +2,8 @@
 #include "display-oled.h"
 
 // Define the global variables (declared extern in config.h)
-uint8_t deviceId = 0;           // parent by default
-bool espnowIsParent = true;
+uint8_t deviceId = atoi(DEVICE_ID);           // parent by default
+bool espnowIsParent = (deviceId == 0);
 const char* hostName = "LaunchScale";
 float calibrationFactor = 0;
 uint8_t tareButtonPin = 14;     // parent tare pin

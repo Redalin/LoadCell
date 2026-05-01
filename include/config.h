@@ -8,6 +8,7 @@
 
 // Firmware version reported by child nodes to parent (sent with weight payload)
 #define FIRMWARE_VERSION "1.3.5"
+#define DEVICE_ID "1" // default device ID (0=parent, 1-4=child). Can be overridden by preferences on first boot.
 
 // Global battery voltage variable
 extern float vbat;

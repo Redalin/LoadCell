@@ -14,7 +14,7 @@ static uint8_t nodeId = 0;  // This device's ID (set on child nodes)
 static uint8_t pendingTareCommand = 0;  // Pending tare command (scale number, 0 = none)
 
 // Buffering for 500ms average
-static const uint32_t ESPNOW_SEND_INTERVAL = 2000;  // 500ms between sends
+static const uint32_t ESPNOW_SEND_INTERVAL = 2000;  // 500ms between reads, send every 4 readings (2s)
 static unsigned long lastSendTime = 0;
 static float weightBuffer[100];  // Buffer for weight samples (enough for ~50 samples at 10ms reading interval)
 static int bufferIndex = 0;
@@ -286,36 +286,7 @@ void espnowSendAveragedWeightIfReady() {
     bufferIndex = 0;
     
     // Send the average
-    uint8_t parentMac[] = PARENT_MAC_ADDR;
-    ESPNowData data;
-    data.type = MSG_TYPE_WEIGHT;
-    data.id = deviceId;
-    data.value = average;
-    data.timestamp = currentTime;
-    // include hostname
-    memset(data.name, 0, sizeof(data.name));
-    const char *hn = hostName;
-    if (hn) strncpy(data.name, hn, sizeof(data.name) - 1);
-    // include battery voltage (already updated periodically by main loop)
-    // and firmware version (constant, no per-cycle work)
-    data.vbat = vbat;
-    memset(data.firmware, 0, sizeof(data.firmware));
-    strncpy(data.firmware, FIRMWARE_VERSION, sizeof(data.firmware) - 1);
-    
-    // Serial.println("Sending averaged weight: ");
-    Serial.print("Sending: Node ID ");
-    Serial.print(deviceId);
-    Serial.print(" - ");
-    Serial.print(data.name);
-    Serial.print(": ");
-    Serial.print(average, 1); 
-    Serial.println(" g");
-
-    esp_err_t result = esp_now_send(parentMac, (uint8_t *)&data, sizeof(data));
-    if (result != ESP_OK) {
-      Serial.print("Error sending weight data: ");
-      Serial.println(result);
-    }
+    espnowSendWeight(average);
   }
 }
 
@@ -340,14 +311,17 @@ void espnowSendWeight(float weight) {
   memset(data.firmware, 0, sizeof(data.firmware));
   strncpy(data.firmware, FIRMWARE_VERSION, sizeof(data.firmware) - 1);
 
-  // Serial.println("Sending averaged weight: ");
+  // Serial.println("Sending single weight reading: ");
   Serial.print("Sending: Node ID ");
   Serial.print(deviceId);
   Serial.print(" - ");
   Serial.print(data.name);
   Serial.print(": ");
   Serial.print(weight, 1); 
-  Serial.println(" g");
+  Serial.print(" g, vbat: ");
+  Serial.print(data.vbat, 2);
+  Serial.print(" V, firmware: ");
+  Serial.println(data.firmware);
 
   esp_err_t result = esp_now_send(parentMac, (uint8_t *)&data, sizeof(data));
   if (result != ESP_OK) {

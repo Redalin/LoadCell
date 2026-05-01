@@ -170,7 +170,7 @@ void scaleTare() {
 float scaleRead() {
     float result = NAN;
     if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
-    // Child nodes only have one scale, so ignore 'which' parameter
+    // Child nodes have one scale
     if (scale.wait_ready_timeout(200)) {
         result = scale.get_units(5);
     }
