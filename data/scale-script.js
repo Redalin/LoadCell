@@ -554,7 +554,7 @@
     // create table header
     const thead = document.createElement('thead');
     const hrow = document.createElement('tr');
-    const thLabel = document.createElement('th'); thLabel.textContent = '5 Sec Avg'; hrow.appendChild(thLabel);
+    const thLabel = document.createElement('th'); thLabel.textContent = 'Weight'; hrow.appendChild(thLabel);
     children.forEach(([id, g]) => {
       const th = document.createElement('th');
       th.textContent = g.name || ('Scale ' + id);
@@ -564,25 +564,23 @@
     });
     thead.appendChild(hrow);
 
-    // second row: averages
+    // second row: latest weight as received
     const tbody = document.createElement('tbody');
     const avgRow = document.createElement('tr');
     const tdLabel = document.createElement('td'); tdLabel.textContent = '';
     avgRow.appendChild(tdLabel);
-    const now = Date.now(); const cutoff = now - 5000;
     children.forEach(([id, g]) => {
-      const visible = g.data.filter(d => d.t >= cutoff && !isNaN(d.v));
+      const last = g.data.length ? g.data[g.data.length - 1] : null;
       const td = document.createElement('td');
-      if (!visible.length) {
+      if (!last || isNaN(last.v)) {
         td.textContent = '-- g';
       } else {
-        const sum = visible.reduce((s,p) => s + p.v, 0);
-        const avg = sum / visible.length;
-        td.textContent = avg.toFixed(1) + ' g';
-        
+        const weight = last.v;
+        td.textContent = weight.toFixed(1) + ' g';
+
         // TrafficLight color coding vs MIN_SPEC:
         // >= MIN_SPEC -> green, within 5g under -> orange, more than 5g under -> red, more than 100g under or NaN -> no color
-        const diff = avg - MIN_SPEC;
+        const diff = weight - MIN_SPEC;
         let trafficLightColour = '';
         if (!isNaN(diff)) {
           if (diff >= 0) trafficLightColour = '#4CAF50';

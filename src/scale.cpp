@@ -40,12 +40,9 @@ void initScale() {
         }
     }
 
-    if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
-    // mutex for performance in case called from multiple tasks
-    
     scale.set_scale(calibrationFactor);
     if (scale.wait_ready_timeout(500)) {
-        scale.tare();  // Reset the scale to 0 on initialization
+        scaleTare();  // Set the scale to 0 on startup
     } else {
         Serial.println("HX711 not found during init (will retry later)");
     }
@@ -69,22 +66,7 @@ float scaleCalibrate() {
         Serial.println(scaleMessage);
         delay(2000);
 
-        scaleMessage = "3";
-        displayText(scaleMessage, vbat);
-        Serial.println(scaleMessage);
-        delay(500);
-
-        scaleMessage = "2"; 
-        displayText(scaleMessage, vbat);
-        Serial.println(scaleMessage);
-        delay(500);    
-
-        scaleMessage = "1";
-        displayText(scaleMessage, vbat);
-        Serial.println(scaleMessage);
-        delay(500);
-
-        scale.tare();
+        scaleTare();
         
         scaleMessage = "Tare done.\nPlace known weight.";
         displayText(scaleMessage, vbat);
@@ -106,8 +88,7 @@ float scaleCalibrate() {
 // Check tare button state with debouncing and return true if pressed (called from main loop)
 bool checkTareButton() {
   static unsigned long lastTarePressTime = 0;  // Track last successful tare press
-  const unsigned long DEBOUNCE_DELAY = 2000;     // ms debounce delay
-  
+  const unsigned long DEBOUNCE_DELAY = 500;     // ms debounce delay
   bool tareButtonState = digitalRead(tareButtonPin);
   unsigned long currentTime = millis();
   
@@ -132,41 +113,107 @@ bool checkTareButton() {
 
 // Tare the single scale on child node
 void scaleTare() {
+    Serial.println("Starting smart tare...");
+    
+    scaleMessage = "TARE!";
+    displayText(scaleMessage, vbat);
+    Serial.println(scaleMessage);
+    delay(500);
+
+    // Starting Smart Tare: wait for stable readings before performing tare
+
     if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
-    Serial.println("Tare scale...");
-    if (scale.wait_ready_timeout(500)) {
-        scaleMessage = "TARE in 3";
-        displayText(scaleMessage, vbat);
-        Serial.println(scaleMessage);
-        delay(500);
 
-        scaleMessage = "TARE in 2";
-        displayText(scaleMessage, vbat);
-        Serial.println(scaleMessage);
-        delay(500);
 
-        scaleMessage = "TARE in 1";
-        displayText(scaleMessage, vbat);
-        Serial.println(scaleMessage);
-        delay(500);    
+    // Tighter values for extra stability (outdoors, etc) could be:
+    // stabilityThreshold = 0.05;
+    // requiredStableReadings = 20;
+    // samplesToAverage = 40;
 
-        scale.tare(); 
-        
-        scaleMessage = "TARE Done";
-        displayText(scaleMessage, vbat);
-        Serial.println(scaleMessage);
-        delay(500);
+    int scaleReadDelayMs = 12; // delay between readings during stabilization (80Hz)
+    int stableCount = 0;
+    float lastReading = 0;
+    unsigned long startTime = millis();
+    const unsigned long maxStabilizeMillis = 15000; // give up after 15s
+    const float stabilityThreshold = 0.1; // how much readings can differ to be considered stable
+    const int requiredStableReadings = 5; // how many stable readings in a row to confirm stability
+    const int samplesToAverage = 5; // how many readings to average for each stability check   
 
-        
-    } else {
-        Serial.println("HX711 not found.");
+
+    scaleMessage = "Stabilizing...";
+    displayText(scaleMessage, vbat);
+    Serial.println(scaleMessage);
+
+    while (stableCount < requiredStableReadings)
+    {
+
+        if (!scale.wait_ready_timeout(200)) continue;
+
+        float reading = scale.get_units(samplesToAverage);
+        debugln("Tare stabilization reading: " + String(reading, 2));
+
+        if (isnan(reading)) {
+            Serial.println("Scale reading NaN during tare stabilization, skipping...");
+            delay(scaleReadDelayMs);
+            if (millis() - startTime > maxStabilizeMillis) break;
+            continue;
+        }
+
+        if (abs(reading - lastReading) < stabilityThreshold) {
+            stableCount++;
+            scaleMessage = "Stabilizing... (" + String(stableCount) + "/" + String(requiredStableReadings) + ")";
+            displayText(scaleMessage, vbat);
+            debugln(scaleMessage);
+        } else {
+            stableCount = 0;  // reset if unstable
+        }
+
+        lastReading = reading;
+        delay(scaleReadDelayMs); // ~80Hz pacing
+
+        if (millis() - startTime > maxStabilizeMillis) {
+            Serial.println("Tare stabilization timeout");
+            break;
+        }
     }
-    Serial.println("Tare done...");
+     
+    // Now take high-accuracy average for tare offset
+    // Compute raw ADC offset (library expects raw offset, not scaled units)
+    long sumRaw = 0;
+    int validSamples = 0;
+    for (int i = 0; i < samplesToAverage; i++) {
+        if (scale.wait_ready_timeout(200)) {
+            long r = scale.get_value(samplesToAverage); // raw average reading
+            sumRaw += r;
+            validSamples++;
+        }
+        delay(scaleReadDelayMs);
+        if (millis() - startTime > maxStabilizeMillis) break; // don't hang here either
+    }
+
+    if (validSamples > 0) {
+        long rawOffset = sumRaw / validSamples;
+        // set_offset expects raw ADC offset; add to existing raw offset
+        long newOffset = scale.get_offset() + rawOffset;
+        scale.set_offset(newOffset);
+        debugln("Tare raw offset set to: " + String(rawOffset));
+    } else {
+        // Fallback: perform a simple tare to set offset if we couldn't get valid samples
+        Serial.println("No valid samples for precise tare; performing simple tare as fallback");
+        scale.tare();
+    }
+
+    if (scaleMutex) xSemaphoreGive(scaleMutex);
+
+    scaleMessage = "TARE Done";
+    displayText(scaleMessage, vbat);
+    Serial.println(scaleMessage);    
+    delay(500);
     if (scaleMutex) xSemaphoreGive(scaleMutex);
 }
 
 
-// Read from the single scale (child nodes only)
+// Read from the scale (child nodes only)
 float scaleRead() {
     float result = NAN;
     if (scaleMutex) xSemaphoreTake(scaleMutex, portMAX_DELAY);
